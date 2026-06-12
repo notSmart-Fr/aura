@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
   <a href="https://www.medusajs.com">
   <picture>
@@ -42,6 +43,34 @@
 
 A production-ready monorepo starter for direct-to-consumer ecommerce stores powered by Medusa and Next.js. Includes a fully featured storefront with product browsing, cart, checkout, customer accounts, and order management.
 
+# Aura E-Commerce Storefront
+
+This repository implements a high-end minimalist apparel storefront using Next.js (App Router), Medusa v2 (Headless Commerce), and Payload CMS (Co-located Content Engine).
+
+## Deterministic Architectural Contract
+
+All frontend contributions and AI coding agents must adhere to the rules outlined in [agent.md](file:///i:/Easytech/agent.md) (or [agents.md](file:///i:/Easytech/agents.md) / [AGENTS.md](file:///i:/Easytech/AGENTS.md)), workspace rules in [.agents/rules/deterministic_contract.md](file:///i:/Easytech/.agents/rules/deterministic_contract.md), and the agent/developer guidelines below.
+
+### 1. Visual Restraints & Styling Tokens
+
+- **Aesthetic:** Minimalist, luxury typography and layouts (e.g., Hugo Boss style).
+- **Color Palette:** White/Off-white backgrounds (`bg-white`, `bg-zinc-50`), sharp dark charcoal/slate/black headers (`text-zinc-900`, `text-slate-900`). No neon colors, heavy borders, or glowing gradients.
+- **Borders:** Strict minimal borders (`border-zinc-200`) and sharp corners (`rounded-none` or `rounded-sm` max).
+- **Aspect Ratios:** Apparel imagery containers must use fixed aspect ratios (`aspect-[3/4]` or `aspect-square`) with a fallback neutral loading state (`bg-zinc-100`).
+
+### 2. File Management & Locality
+
+Keep all layout components, templates, and micro UI atomic leaf nodes localized inside their boundary lanes in `src/modules/`. Do not leak routing orchestration parameters or rendering markup inappropriately.
+
+Refer to [agent.md](file:///i:/Easytech/agent.md) for the locked directory structures.
+
+### 3. Core Integration Rules
+
+- **Rule A (Separation of Data):** Fetch transactional product parameters via the official Medusa JS SDK and content layouts using Payload CMS.
+- **Rule B (Strict Type Contracts):** Consume official types exported by `@medusajs/types` or `HttpTypes.StoreProduct`. Do not use `any`.
+- **Rule C (Context Containment):** Work locally within atomic leaf folders when editing components. Do not modify parent configurations.
+- **Rule D (Data State Mutability):** Do not write custom `fetch()` or Axios setups for commerce endpoints; rely on the global SDK handler.
+
 ## Features
 
 - All of [Medusa's commerce features](https://docs.medusajs.com/resources/commerce-modules)
@@ -77,55 +106,55 @@ cd dtc-starter
 pnpm install
 ```
 
-2. Set up environment variables for the backend:
+1. Set up environment variables for the backend:
 
 ```bash
 cp apps/backend/.env.template apps/backend/.env
 ```
 
-3. Set the database URL in `apps/backend.env`:
+1. Set the database URL in `apps/backend.env`:
 
 ```bash
 # Replace with actual database URL, make sure the database exists.
 DATABASE_URL=postgres://postgres:@localhost:5432/medusa-dtc-starter
 ```
 
-4. Run migrations:
+1. Run migrations:
 
 ```bash
 cd apps/backend
 pnpm medusa db:migrate
 ```
 
-5. Add admin user:
+1. Add admin user:
 
 ```bash
 cd apps/backend
 pnpm medusa user -e admin@test.com -p supersecret
 ```
 
-6. Start Medusa backend:
+1. Start Medusa backend:
 
 ```bash
 cd apps/backend
 pnpm dev
 ```
 
-7. Open the admin dashboard at `localhost:9000/app` and log in. Retrieve your publishable API key at Settings > Publishable API key.
+1. Open the admin dashboard at `localhost:9000/app` and log in. Retrieve your publishable API key at Settings > Publishable API key.
 
-8. Set up environment variables for the storefront:
+2. Set up environment variables for the storefront:
 
 ```bash
 cp apps/storefront/.env.template apps/storefront/.env.local
 ```
 
-9. Update `apps/storefront/.env.local` with your Medusa publishable API key:
+1. Update `apps/storefront/.env.local` with your Medusa publishable API key:
 
 ```bash
 NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_6c3...
 ```
 
-10.  Start storefront:
+1. Start storefront:
 
 ```bash
 cd apps/storefront
@@ -145,7 +174,7 @@ pnpm dev
 The storefront is configured via environment variables in `apps/storefront/.env.local`:
 
 | Variable | Description | Default |
-|----------|-------------|---------|
+| ---------- | ------------- | --------- |
 | `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` | Publishable API key from your Medusa backend | — |
 | `NEXT_PUBLIC_MEDUSA_BACKEND_URL` | URL of your Medusa backend | `http://localhost:9000` |
 | `NEXT_PUBLIC_DEFAULT_REGION` | Default region country code | `dk` |
@@ -156,3 +185,25 @@ The storefront is configured via environment variables in `apps/storefront/.env.
 
 - [Medusa Documentation](https://docs.medusajs.com)
 - [Medusa Cloud](https://cloud.medusajs.com)
+
+Medusa Admin: [EMAIL_ADDRESS]
+Password: [PASSWORD ]
+
+Next.js Storefront: <http://localhost:8000>
+Medusa Admin: <http://localhost:9000/app>
+
+## Administrative Entryways (Dashboard Shortcuts)
+
+We have integrated convenient shortcuts to access the admin dashboards directly from the storefront:
+
+### 1. Payload CMS Admin Dashboard (`/admin`)
+- **Global Keyboard Shortcut:** Press `Alt + Shift + A` (or `Ctrl + Shift + A`) on any storefront page to automatically open the Payload CMS Admin dashboard in a new tab.
+- **Dynamic Navigation Link:** When logged in as an admin (`user.role === 'admin'`), a `"✦ DASHBOARD"` text link is displayed on the right side of the navigation bar that opens the Payload CMS Admin dashboard in a new tab.
+- **Direct Link:** Directly accessible at `http://localhost:8000/admin`.
+
+### 2. Medusa Admin Dashboard (`/app` on Backend)
+- **Global Keyboard Shortcut:** Press `Alt + Shift + M` (or `Ctrl + Shift + M`) on any storefront page to automatically open the Medusa Admin dashboard (`http://localhost:9000/app`) in a new tab.
+- **Direct Link:** Directly accessible at `http://localhost:9000/app`.
+
+
+

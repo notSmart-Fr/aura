@@ -1,3 +1,10 @@
 packages:
   - "apps/**"
   - "!apps/backend/.medusa/**"
+
+# pnpm v10+ overrides placement engine
+overrides:
+  react: "19.0.5"
+  react-dom: "19.0.5"
+  "@types/react": "19.0.5"
+  "@types/react-dom": "19.0.5"

@@ -1,4 +1,3 @@
-import { Text } from "@modules/common/components/ui"
 import { getProductPrice } from "@lib/util/get-product-price"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
@@ -14,18 +13,15 @@ export default async function ProductPreview({
   isFeatured?: boolean
   region: HttpTypes.StoreRegion
 }) {
-  // const pricedProduct = await listProducts({
-  //   regionId: region.id,
-  //   queryParams: { id: [product.id!] },
-  // }).then(({ response }) => response.products[0])
-
-  // if (!pricedProduct) {
-  //   return null
-  // }
-
   const { cheapestPrice } = getProductPrice({
     product,
   })
+
+  // Parse variant's active color option
+  const colorOption = product.options?.find((o) => o.title?.toLowerCase() === "color")
+  const activeColor = product.variants?.[0]?.options?.find(
+    (vOpt) => vOpt.option_id === colorOption?.id
+  )?.value || colorOption?.values?.[0]?.value || ""
 
   return (
     <LocalizedClientLink href={`/products/${product.handle}`} className="group">
@@ -36,11 +32,18 @@ export default async function ProductPreview({
           size="full"
           isFeatured={isFeatured}
         />
-        <div className="flex txt-compact-medium mt-4 justify-between">
-          <Text className="text-ui-fg-subtle" data-testid="product-title">
-            {product.title}
-          </Text>
-          <div className="flex items-center gap-x-2">
+        <div className="flex justify-between items-baseline mt-4">
+          <div className="flex flex-col">
+            <span className="font-label-lg text-primary uppercase" data-testid="product-title">
+              {product.title}
+            </span>
+            {activeColor && (
+              <span className="font-label-md text-secondary uppercase mt-1">
+                {activeColor}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center font-body-md text-primary">
             {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
           </div>
         </div>

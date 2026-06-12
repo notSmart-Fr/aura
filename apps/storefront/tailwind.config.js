@@ -1,8 +1,10 @@
-const path = require("path")
+import path from "path"
+import medusaUiPreset from "@medusajs/ui-preset"
+import tailwindcssRadix from "tailwindcss-radix"
 
-module.exports = {
+export default {
   darkMode: "class",
-  presets: [require("@medusajs/ui-preset")],
+  presets: [medusaUiPreset],
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx}",
     "./src/pages/**/*.{js,ts,jsx,tsx}",
@@ -33,14 +35,52 @@ module.exports = {
           80: "#1F2937",
           90: "#111827",
         },
+        "surface-container-lowest": "#ffffff",
+        "on-primary-container": "#848484",
+        "graphite": "#333333",
+        "silver-sand": "#E5E5E5",
+        "inverse-surface": "#2f3131",
+        "on-primary": "#ffffff",
+        "background": "#ffffff",
+        "on-error": "#ffffff",
+        "tertiary-container": "#1b1b1b",
+        "on-secondary": "#ffffff",
+        "surface-bright": "#ffffff",
+        "tertiary": "#000000",
+        "surface-container-highest": "#e2e2e2",
+        "surface-variant": "#e2e2e2",
+        "surface-container-low": "#ffffff",
+        "outline": "#7e7576",
+        "surface-container": "#ffffff",
+        "surface": "#ffffff",
+        "error": "#ba1a1a",
+        "primary": "#000000",
+        "secondary": "#5d5f5f",
+        "on-background": "#1a1c1c",
+        "on-surface": "#1a1c1c"
       },
       borderRadius: {
         none: "0px",
-        soft: "2px",
-        base: "4px",
-        rounded: "8px",
-        large: "16px",
-        circle: "9999px",
+        soft: "0px",
+        base: "0px",
+        rounded: "0px",
+        large: "0px",
+        circle: "0px",
+        DEFAULT: "0px",
+        lg: "0px",
+        xl: "0px",
+        full: "0px",
+      },
+      spacing: {
+        "stack-sm": "20px",
+        "gutter": "1px",
+        "margin-desktop": "80px",
+        "stack-xl": "160px",
+        "stack-md": "40px",
+        "margin-mobile": "20px",
+        "margin-tablet": "40px",
+        "stack-lg": "80px",
+        "container-max": "1440px"
       },
       maxWidth: {
         "8xl": "100rem",
@@ -56,6 +96,14 @@ module.exports = {
       },
       fontSize: {
         "3xl": "2rem",
+        "display-lg": ["64px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+        "body-md": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+        "label-lg": ["12px", {"lineHeight": "1", "letterSpacing": "0.15em", "fontWeight": "500"}],
+        "headline-sm": ["18px", {"lineHeight": "1.4", "letterSpacing": "0.1em", "fontWeight": "600"}],
+        "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "400"}],
+        "headline-lg": ["40px", {"lineHeight": "1.2", "letterSpacing": "0em", "fontWeight": "400"}],
+        "label-md": ["10px", {"lineHeight": "1", "letterSpacing": "0.2em", "fontWeight": "500"}],
+        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
       },
       fontFamily: {
         sans: [
@@ -68,6 +116,14 @@ module.exports = {
           "Ubuntu",
           "sans-serif",
         ],
+        "display-lg": ["var(--font-eb-garamond)"],
+        "body-md": ["var(--font-hanken-grotesk)"],
+        "label-lg": ["var(--font-hanken-grotesk)"],
+        "headline-sm": ["var(--font-hanken-grotesk)"],
+        "headline-md": ["var(--font-eb-garamond)"],
+        "headline-lg": ["var(--font-eb-garamond)"],
+        "label-md": ["var(--font-hanken-grotesk)"],
+        "body-lg": ["var(--font-hanken-grotesk)"],
       },
       keyframes: {
         ring: {
@@ -157,5 +213,5 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-radix")()],
+  plugins: [tailwindcssRadix()],
 }

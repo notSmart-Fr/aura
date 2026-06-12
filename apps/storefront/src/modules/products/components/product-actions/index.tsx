@@ -116,6 +116,17 @@ export default function ProductActions({
     return false
   }, [selectedVariant])
 
+  const isOutOfStock = useMemo(() => {
+    if (!product.variants || product.variants.length === 0) {
+      return true
+    }
+    const totalInventory = product.variants.reduce(
+      (acc, v) => acc + (v.inventory_quantity || 0),
+      0
+    )
+    return totalInventory === 0
+  }, [product.variants])
+
   const actionsRef = useRef<HTMLDivElement>(null)
 
   const inView = useIntersection(actionsRef, "0px")
@@ -165,8 +176,8 @@ export default function ProductActions({
         <Button
           onClick={handleAddToCart}
           disabled={
-            !inStock ||
             !selectedVariant ||
+            !inStock ||
             !!disabled ||
             isAdding ||
             !isValidVariant
@@ -176,10 +187,12 @@ export default function ProductActions({
           isLoading={isAdding}
           data-testid="add-product-button"
         >
-          {!selectedVariant && !options
-            ? "Select variant"
+          {!selectedVariant
+            ? isOutOfStock
+              ? "OUT OF STOCK"
+              : "SELECT A SIZE"
             : !inStock || !isValidVariant
-            ? "Out of stock"
+            ? "OUT OF STOCK"
             : "Add to cart"}
         </Button>
         <MobileActions

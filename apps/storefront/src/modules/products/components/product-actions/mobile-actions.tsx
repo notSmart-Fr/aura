@@ -52,6 +52,17 @@ const MobileActions: React.FC<MobileActionsProps> = ({
 
   const isSimple = isSimpleProduct(product)
 
+  const isOutOfStock = useMemo(() => {
+    if (!product.variants || product.variants.length === 0) {
+      return true
+    }
+    const totalInventory = product.variants.reduce(
+      (acc, v) => acc + (v.inventory_quantity || 0),
+      0
+    )
+    return totalInventory === 0
+  }, [product.variants])
+
   return (
     <>
       <div
@@ -118,15 +129,17 @@ const MobileActions: React.FC<MobileActionsProps> = ({
               </Button>}
               <Button
                 onClick={handleAddToCart}
-                disabled={!inStock || !variant}
+                disabled={!variant || !inStock}
                 className="w-full"
                 isLoading={isAdding}
                 data-testid="mobile-cart-button"
               >
                 {!variant
-                  ? "Select variant"
+                  ? isOutOfStock
+                    ? "OUT OF STOCK"
+                    : "SELECT A SIZE"
                   : !inStock
-                  ? "Out of stock"
+                  ? "OUT OF STOCK"
                   : "Add to cart"}
               </Button>
             </div>

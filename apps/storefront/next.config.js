@@ -1,4 +1,5 @@
-const checkEnvVariables = require("./check-env-variables")
+import { withPayload } from "@payloadcms/next/withPayload";
+import checkEnvVariables from "./check-env-variables.js";
 
 checkEnvVariables()
 
@@ -18,14 +19,13 @@ const nextConfig = {
       fullUrl: true,
     },
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
+  turbopack: {},
   images: {
     unoptimized: true,
+    qualities: [50, 75],
     remotePatterns: [
       {
         protocol: "http",
@@ -52,4 +52,5 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+export default withPayload(nextConfig)
+
