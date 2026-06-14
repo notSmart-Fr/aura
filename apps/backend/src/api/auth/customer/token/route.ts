@@ -4,20 +4,8 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
-// Helper function to sign HS256 JWTs natively using Node.js crypto module to avoid dependency errors
-function signMedusaJwt(payload: any, secret: string): string {
-  const header = { alg: "HS256", typ: "JWT" };
-  const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = crypto
-    .createHmac("sha256", secret)
-    .update(`${encodedHeader}.${encodedPayload}`)
-    .digest("base64url");
-  return `${encodedHeader}.${encodedPayload}.${signature}`;
-}
-
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  console.log("[DEBUG] Backend magic-link request body:", req.body);
+  console.log("[DEBUG] Backend magic-link token request body:", req.body);
   
   const { email, signature } = req.body as { email: string; signature: string };
 
@@ -62,12 +50,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       fields: [
         "id",
         "provider_identities.id",
-        "provider_identities.provider_id",
+        "provider_identities.provider",
         "provider_identities.entity_id"
       ],
       filters: {
         provider_identities: {
-          provider_id: "emailpass",
+          provider: "emailpass",
           entity_id: email,
         }
       },
@@ -93,7 +81,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         {
           provider_identities: [
             {
-              provider_id: "emailpass",
+              provider: "emailpass",
               entity_id: email,
             }
           ]
@@ -115,16 +103,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       console.log("[DEBUG] Linked successfully.");
     }
 
-    // 5. Generate a native Medusa JWT token signed with Medusa's JWT secret
-    const jwtSecret = process.env.JWT_SECRET || "supersecret";
-    const token = signMedusaJwt(
-      {
-        actor_id: customer.id,
-        auth_identity_id: authUser.id,
-        domain: "store",
-      },
-      jwtSecret
-    );
+    // 5. Generate a native Medusa JWT token utilizing the native authModuleService.generateJwtToken method
+    const token = await authModuleService.generateJwtToken(authUser.id, "store", {
+      provider: "emailpass",
+      scope: "store",
+      actor_id: customer.id,
+      auth_identity_id: authUser.id,
+    });
 
     console.log("[DEBUG] Generated token successfully.");
     return res.status(200).json({ token });

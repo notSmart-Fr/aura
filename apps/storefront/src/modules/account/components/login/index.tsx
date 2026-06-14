@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { login } from "@lib/data/customer"
-import { sendMagicLink } from "@lib/data/magic-link"
+import { sendOTP, verifyOTP } from "@lib/data/magic-link"
 import { LOGIN_VIEW } from "@modules/account/templates/login-template"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import Input from "@modules/common/components/input"
@@ -12,11 +13,34 @@ type Props = {
 }
 
 const Login = ({ setCurrentView }: Props) => {
+  const router = useRouter()
   const [email, setEmail] = useState("")
-  const [step, setStep] = useState<"email" | "choices" | "sent">("email")
+  const [step, setStep] = useState<"email" | "choices" | "otp">("email")
   const [selectedChoice, setSelectedChoice] = useState<"password" | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // 6-digit OTP state and refs
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(""))
+  const inputRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ]
+
+  // Reset OTP state when entering the OTP step
+  useEffect(() => {
+    if (step === "otp") {
+      setOtp(Array(6).fill(""))
+      // Delay focus slightly to ensure DOM has rendered
+      setTimeout(() => {
+        inputRefs[0].current?.focus()
+      }, 50)
+    }
+  }, [step])
 
   const handleEmailSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -33,16 +57,86 @@ const Login = ({ setCurrentView }: Props) => {
     setStep("choices")
   }
 
-  const handleSendMagicLink = async () => {
+  const handleRequestOTP = async () => {
     setLoading(true)
     setError(null)
-    const result = await sendMagicLink(email)
+    const result = await sendOTP(email)
     setLoading(false)
 
     if (result.success) {
-      setStep("sent")
+      setStep("otp")
     } else {
-      setError(result.error || "Failed to send magic link.")
+      setError(result.error || "Failed to send verification code.")
+    }
+  }
+
+  const handleVerifyOTP = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const code = otp.join("")
+
+    if (code.length !== 6) {
+      setError("Please enter a valid 6-digit code.")
+      setLoading(false)
+      return
+    }
+
+    try {
+      const result = await verifyOTP(email, code)
+      if (result.success) {
+        try {
+          router.refresh()
+        } catch (routerErr) {
+          console.error("Router refresh failed:", routerErr)
+        }
+        setTimeout(() => {
+          window.location.href = "/account"
+        }, 150)
+      } else {
+        setError(result.error || "Verification failed.")
+        setLoading(false)
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.")
+      setLoading(false)
+    }
+  }
+
+  const handleOtpChange = (value: string, index: number) => {
+    const digit = value.slice(-1) // Take only the last entered digit
+    const newOtp = [...otp]
+    newOtp[index] = digit
+    setOtp(newOtp)
+
+    // Move focus to next input if digit was entered
+    if (digit && index < 5) {
+      inputRefs[index + 1].current?.focus()
+    }
+  }
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    // Move focus back on Backspace if current box is empty
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs[index - 1].current?.focus()
+    }
+  }
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData("text").trim().slice(0, 6)
+    
+    if (/^\d+$/.test(pastedData)) {
+      const newOtp = [...otp]
+      for (let i = 0; i < pastedData.length; i++) {
+        newOtp[i] = pastedData[i]
+      }
+      setOtp(newOtp)
+      
+      // Focus the last input box or the next unfilled box
+      const targetIndex = Math.min(pastedData.length, 5)
+      inputRefs[targetIndex].current?.focus()
     }
   }
 
@@ -68,7 +162,7 @@ const Login = ({ setCurrentView }: Props) => {
       className="max-w-sm w-full flex flex-col items-center"
       data-testid="login-page"
     >
-      <h1 className="font-display-lg text-headline-md uppercase mb-4">Welcome back</h1>
+      <h1 className="font-display-lg text-headline-md uppercase mb-4 text-primary">Welcome back</h1>
       
       {step === "email" && (
         <>
@@ -103,7 +197,7 @@ const Login = ({ setCurrentView }: Props) => {
 
       {step === "choices" && (
         <div className="w-full flex flex-col items-center">
-          <p className="text-center font-body-md text-zinc-500 mb-2">
+          <p className="text-center font-body-md text-zinc-500 mb-1">
             Signing in as
           </p>
           <p className="text-center font-body-lg font-bold text-primary mb-6">
@@ -124,11 +218,11 @@ const Login = ({ setCurrentView }: Props) => {
             </button>
             <button
               type="button"
-              onClick={handleSendMagicLink}
+              onClick={handleRequestOTP}
               disabled={loading}
               className="font-label-md text-xs uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors duration-300 disabled:opacity-50"
             >
-              {loading ? "Sending..." : "Send Magic Link Instead"}
+              {loading ? "Sending..." : "Send Verification Code"}
             </button>
           </div>
 
@@ -143,6 +237,7 @@ const Login = ({ setCurrentView }: Props) => {
                   type="password"
                   autoComplete="current-password"
                   required
+                  autoFocus
                   data-testid="password-input"
                   className="rounded-none border-zinc-200"
                 />
@@ -172,25 +267,72 @@ const Login = ({ setCurrentView }: Props) => {
         </div>
       )}
 
-      {step === "sent" && (
-        <div className="w-full flex flex-col items-center text-center">
-          <p className="font-body-lg text-primary mb-4 font-medium">
-            Check your inbox
+      {step === "otp" && (
+        <div className="w-full flex flex-col items-center">
+          <p className="text-center font-body-md text-zinc-500 mb-1">
+            Verification code sent to
           </p>
-          <p className="font-body-md text-zinc-500 mb-8">
-            A secure magic sign-in link has been sent to <span className="font-bold text-primary">{email}</span>. Please click the link to verify your identity and log in.
+          <p className="text-center font-body-lg font-bold text-primary mb-6">
+            {email}
           </p>
-          <button
-            type="button"
-            onClick={() => {
-              setStep("email")
-              setSelectedChoice(null)
-              setError(null)
-            }}
-            className="w-full bg-primary text-white py-4 font-label-lg uppercase tracking-widest hover:bg-secondary transition-colors duration-300 rounded-none"
-          >
-            Return to Sign In
-          </button>
+
+          <form className="w-full" onSubmit={handleVerifyOTP}>
+            <div className="flex flex-col items-center w-full gap-y-2">
+              <label className="text-zinc-400 font-label-md text-xs uppercase tracking-widest mb-2">
+                Enter 6-Digit Code
+              </label>
+              
+              <div className="flex gap-x-2 justify-center w-full my-2">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={inputRefs[index]}
+                    type="text"
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(e.target.value, index)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                    onPaste={index === 0 ? handleOtpPaste : undefined}
+                    className="w-12 h-12 text-center text-lg font-bold border border-zinc-200 focus:border-primary focus:outline-none focus:ring-0 rounded-none bg-white text-primary transition-all duration-150"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {error && <ErrorMessage error={error} data-testid="login-error-message" />}
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-6 bg-primary text-white py-4 font-label-lg uppercase tracking-widest hover:bg-secondary transition-colors duration-300 rounded-none disabled:opacity-50"
+            >
+              {loading ? "Verifying..." : "Verify Code"}
+            </button>
+          </form>
+
+          <div className="flex justify-between w-full mt-6">
+            <button
+              type="button"
+              onClick={handleRequestOTP}
+              disabled={loading}
+              className="font-label-md text-zinc-400 hover:text-zinc-600 uppercase tracking-widest text-xs disabled:opacity-50"
+            >
+              Resend Code
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("email")
+                setSelectedChoice(null)
+                setError(null)
+              }}
+              className="font-label-md text-zinc-400 hover:text-zinc-600 uppercase tracking-widest text-xs"
+            >
+              Change Email
+            </button>
+          </div>
         </div>
       )}
 

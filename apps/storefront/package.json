@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "dev": "next dev --webpack -p 8000",
-    "build": "next build",
+    "build": "payload generate:importmap && next build",
     "start": "next start -p 8000",
     "lint": "next lint",
     "analyze": "ANALYZE=true next build"

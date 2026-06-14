@@ -8,7 +8,7 @@ import { Users } from './src/collections/Users'
 import { HeroBanners } from './src/collections/HeroBanners'
 import { Lookbooks } from './src/collections/Lookbooks'
 import { Pages } from './src/collections/Pages'
-
+import { OTPs } from './src/collections/OTPs'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -19,7 +19,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, HeroBanners, Lookbooks, Pages],
+  collections: [Users, HeroBanners, Lookbooks, Pages, OTPs],
   editor: lexicalEditor({}),
   secret: process.env.PAYLOAD_SECRET || 'supersecretpayloadkey123',
   typescript: {

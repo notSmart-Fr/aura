@@ -71,6 +71,7 @@ export interface Config {
     'hero-banners': HeroBanner;
     lookbooks: Lookbook;
     pages: Page;
+    otps: Otp;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -82,6 +83,7 @@ export interface Config {
     'hero-banners': HeroBannersSelect<false> | HeroBannersSelect<true>;
     lookbooks: LookbooksSelect<false> | LookbooksSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    otps: OtpsSelect<false> | OtpsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -235,6 +237,18 @@ export interface Page {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "otps".
+ */
+export interface Otp {
+  id: number;
+  email: string;
+  code: string;
+  expiresAt: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -272,6 +286,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'pages';
         value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'otps';
+        value: number | Otp;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -400,6 +418,17 @@ export interface PagesSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "otps_select".
+ */
+export interface OtpsSelect<T extends boolean = true> {
+  email?: T;
+  code?: T;
+  expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
