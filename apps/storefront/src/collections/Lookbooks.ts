@@ -5,6 +5,7 @@ export const Lookbooks: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'isActive', 'createdAt'],
+    hidden: true,
   },
   fields: [
     {

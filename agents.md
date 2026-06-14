@@ -32,8 +32,8 @@ src/
 │       └── admin/              <-- Payload CMS Native GUI Route
 │
 ├── collections/                <-- CMS SCHEMA ENGINE
-│   ├── HeroBanners.ts          <-- Pure TypeScript Payload Configuration
-│   └── Lookbooks.ts
+│   ├── Pages.ts                <-- Unified Page Builder Configuration
+│   └── blocks/                 <-- Block schemas (HeroConfig, ManifestoConfig, etc.)
 │
 └── modules/                    <-- FEATURE-BASED LOCALITY PLAYGROUND (AGENT SANDBOX)
     ├── home/

@@ -1,5 +1,5 @@
 {
   "status": 500,
-  "body": "{\"error\":\"Trying to query by not existing property ProviderIdentity.provider_id\"}",
-  "timestamp": "2026-06-13T10:42:12.442Z"
+  "body": "{\"error\":\"authServiceLocal.generateJwtToken is not a function\"}",
+  "timestamp": "2026-06-14T14:17:18.338Z"
 }

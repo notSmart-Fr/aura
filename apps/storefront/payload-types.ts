@@ -72,6 +72,7 @@ export interface Config {
     lookbooks: Lookbook;
     pages: Page;
     otps: Otp;
+    media: Media;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -84,6 +85,7 @@ export interface Config {
     lookbooks: LookbooksSelect<false> | LookbooksSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     otps: OtpsSelect<false> | OtpsSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -208,32 +210,79 @@ export interface Page {
   /**
    * Dynamic composition of layouts for this page
    */
-  layout_blocks?:
-    | {
-        title: string;
-        description?: string | null;
-        items?:
-          | {
-              caption?: string | null;
-              /**
-               * URL of the lookbook image item
-               */
-              imageUrl: string;
-              linkType: 'product' | 'collection';
-              /**
-               * The Medusa handle for linking products/collections
-               */
-              targetHandle: string;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'asymmetrical-grid';
-      }[]
+  layout?:
+    | (
+        | {
+            title: string;
+            description?: string | null;
+            image: number | Media;
+            buttonText?: string | null;
+            buttonLink?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'hero';
+          }
+        | {
+            editorialTitle?: string | null;
+            editorialText?: string | null;
+            editorialLink?: string | null;
+            editorialLinkText?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'productGrid';
+          }
+        | {
+            subtitle?: string | null;
+            text?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'manifesto';
+          }
+        | {
+            title: string;
+            description?: string | null;
+            items?:
+              | {
+                  caption?: string | null;
+                  /**
+                   * URL of the lookbook image item
+                   */
+                  imageUrl: string;
+                  linkType: 'product' | 'collection';
+                  /**
+                   * The Medusa handle for linking products/collections
+                   */
+                  targetHandle: string;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'asymmetrical-grid';
+          }
+      )[]
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -290,6 +339,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'otps';
         value: number | Otp;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: number | Media;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -397,9 +450,38 @@ export interface LookbooksSelect<T extends boolean = true> {
 export interface PagesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  layout_blocks?:
+  layout?:
     | T
     | {
+        hero?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              image?: T;
+              buttonText?: T;
+              buttonLink?: T;
+              id?: T;
+              blockName?: T;
+            };
+        productGrid?:
+          | T
+          | {
+              editorialTitle?: T;
+              editorialText?: T;
+              editorialLink?: T;
+              editorialLinkText?: T;
+              id?: T;
+              blockName?: T;
+            };
+        manifesto?:
+          | T
+          | {
+              subtitle?: T;
+              text?: T;
+              id?: T;
+              blockName?: T;
+            };
         'asymmetrical-grid'?:
           | T
           | {
@@ -431,6 +513,24 @@ export interface OtpsSelect<T extends boolean = true> {
   expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

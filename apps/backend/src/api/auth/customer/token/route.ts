@@ -4,6 +4,18 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
+// Helper function to sign HS256 JWTs natively using Node.js crypto module to avoid dependency errors
+function signMedusaJwt(payload: any, secret: string): string {
+  const header = { alg: "HS256", typ: "JWT" };
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest("base64url");
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   console.log("[DEBUG] Backend magic-link token request body:", req.body);
   
@@ -28,7 +40,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as any;
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as any;
-    const authModuleService = req.scope.resolve("auth") as any;
+    const authServiceLocal = req.scope.resolve("auth") as any;
     const customerModuleService = req.scope.resolve("customer") as any;
     console.log("[DEBUG] Finding customer for email:", email);
     // 1. Query the customer
@@ -77,7 +89,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // 4. If auth_identity doesn't exist, create it and link it to the customer
     if (!authUser) {
       console.log("[DEBUG] Auth identity not found. Creating a new auth identity...");
-      const createdAuthIdentities = await authModuleService.createAuthIdentities([
+      const createdAuthIdentities = await authServiceLocal.createAuthIdentities([
         {
           provider_identities: [
             {
@@ -103,13 +115,17 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       console.log("[DEBUG] Linked successfully.");
     }
 
-    // 5. Generate a native Medusa JWT token utilizing the native authModuleService.generateJwtToken method
-    const token = await authModuleService.generateJwtToken(authUser.id, "store", {
-      provider: "emailpass",
-      scope: "store",
-      actor_id: customer.id,
-      auth_identity_id: authUser.id,
-    });
+    // 5. Generate a native Medusa JWT token signed with Medusa's JWT secret
+    const jwtSecret = process.env.JWT_SECRET || "supersecret";
+    const token = signMedusaJwt(
+      {
+        actor_id: customer.id,
+        actor_type: "customer",
+        auth_identity_id: authUser.id,
+        domain: "store",
+      },
+      jwtSecret
+    );
 
     console.log("[DEBUG] Generated token successfully.");
     return res.status(200).json({ token });

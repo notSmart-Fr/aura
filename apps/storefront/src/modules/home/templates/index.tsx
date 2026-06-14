@@ -11,12 +11,14 @@ interface HomeTemplateProps {
   products: HttpTypes.StoreProduct[]
   cmsContent?: HeroBanner | null
   teaserContent?: Lookbook | null
+  countryCode: string
 }
 
 export default async function HomeTemplate({
   products,
   cmsContent,
   teaserContent,
+  countryCode,
 }: HomeTemplateProps) {
   // Fetch default region internally to avoid polluting the orchestrator's interface
   const regions = await listRegions()
@@ -29,7 +31,7 @@ export default async function HomeTemplate({
   return (
     <div className="bg-white min-h-screen pt-[100px] flex flex-col">
       {/* Editorial Hero Banner */}
-      <Hero data={cmsContent} />
+      <Hero data={cmsContent} locale={countryCode} />
 
       {/* Teaser Images Section */}
       <TeaserSection data={teaserContent} />

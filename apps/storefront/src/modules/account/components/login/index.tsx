@@ -197,32 +197,30 @@ const Login = ({ setCurrentView }: Props) => {
 
       {step === "choices" && (
         <div className="w-full flex flex-col items-center">
-          <p className="text-center font-body-md text-zinc-500 mb-1">
+          <p className="text-center font-body-md text-[10px] uppercase tracking-widest text-zinc-400 mb-2">
             Signing in as
           </p>
-          <p className="text-center font-body-lg font-bold text-primary mb-6">
+          <p className="text-center font-body-lg font-bold text-zinc-900 mb-6">
             {email}
           </p>
 
-          <div className="flex w-full justify-between items-center border-t border-b border-zinc-100 py-4 mb-6">
-            <button
-              type="button"
-              onClick={() => setSelectedChoice("password")}
-              className={`font-label-md text-xs uppercase tracking-widest transition-colors duration-300 ${
-                selectedChoice === "password"
-                  ? "text-primary font-bold border-b border-primary pb-0.5"
-                  : "text-zinc-400 hover:text-zinc-600"
-              }`}
-            >
-              Enter Password
-            </button>
+          <div className="flex flex-col w-full gap-y-3 mb-6">
             <button
               type="button"
               onClick={handleRequestOTP}
               disabled={loading}
-              className="font-label-md text-xs uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors duration-300 disabled:opacity-50"
+              className="w-full bg-zinc-900 text-white py-3 text-xs uppercase tracking-widest rounded-none hover:bg-zinc-800 transition-colors duration-300 disabled:opacity-50 font-label-md"
             >
               {loading ? "Sending..." : "Send Verification Code"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedChoice("password")}
+              className={`w-full border border-zinc-200 text-zinc-900 bg-transparent rounded-none py-3 text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors duration-300 font-label-md ${
+                selectedChoice === "password" ? "bg-zinc-50 border-zinc-900" : ""
+              }`}
+            >
+              Enter Password
             </button>
           </div>
 
@@ -260,7 +258,7 @@ const Login = ({ setCurrentView }: Props) => {
               setSelectedChoice(null)
               setError(null)
             }}
-            className="text-center font-label-md text-zinc-400 hover:text-zinc-600 uppercase tracking-widest text-xs mt-6"
+            className="text-center font-label-md text-zinc-500 hover:text-zinc-900 uppercase tracking-widest text-xs mt-6 transition-colors duration-300"
           >
             Back to email
           </button>
@@ -317,7 +315,7 @@ const Login = ({ setCurrentView }: Props) => {
               type="button"
               onClick={handleRequestOTP}
               disabled={loading}
-              className="font-label-md text-zinc-400 hover:text-zinc-600 uppercase tracking-widest text-xs disabled:opacity-50"
+              className="font-label-md text-zinc-500 hover:text-zinc-900 uppercase tracking-widest text-xs disabled:opacity-50"
             >
               Resend Code
             </button>
@@ -328,7 +326,7 @@ const Login = ({ setCurrentView }: Props) => {
                 setSelectedChoice(null)
                 setError(null)
               }}
-              className="font-label-md text-zinc-400 hover:text-zinc-600 uppercase tracking-widest text-xs"
+              className="font-label-md text-zinc-500 hover:text-zinc-900 uppercase tracking-widest text-xs"
             >
               Change Email
             </button>

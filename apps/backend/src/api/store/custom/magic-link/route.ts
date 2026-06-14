@@ -40,7 +40,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY) as any;
     const link = req.scope.resolve(ContainerRegistrationKeys.LINK) as any;
-    const authModuleService = req.scope.resolve("auth") as any;
+    const authServiceLocal = req.scope.resolve("auth") as any;
     const customerModuleService = req.scope.resolve("customer") as any;
     console.log("[DEBUG] Finding customer for email:", email);
     // 1. Query the customer
@@ -89,7 +89,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // 4. If auth_identity doesn't exist, create it and link it to the customer
     if (!authUser) {
       console.log("[DEBUG] Auth identity not found. Creating a new auth identity...");
-      const createdAuthIdentities = await authModuleService.createAuthIdentities([
+      const createdAuthIdentities = await authServiceLocal.createAuthIdentities([
         {
           provider_identities: [
             {
@@ -120,6 +120,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const token = signMedusaJwt(
       {
         actor_id: customer.id,
+        actor_type: "customer",
         auth_identity_id: authUser.id,
         domain: "store",
       },

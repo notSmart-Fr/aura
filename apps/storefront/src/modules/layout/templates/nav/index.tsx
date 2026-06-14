@@ -67,16 +67,6 @@ export default async function Nav() {
 
       {/* Right actions */}
       <div className="flex items-center gap-stack-sm text-primary">
-        {isAdmin && (
-          <LocalizedClientLink
-            href="/admin"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-label-md text-secondary uppercase hover:text-primary transition-colors duration-300 mr-2"
-          >
-            ✦ DASHBOARD
-          </LocalizedClientLink>
-        )}
         <span className="cursor-pointer hover:opacity-70 transition-opacity flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"

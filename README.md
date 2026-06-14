@@ -162,24 +162,75 @@ pnpm dev
 ```
 
 The storefront runs on `http://localhost:8000`.
+You can also run the storefront and backend separately.
 
-You can slo run the following command from the root to start both backend and storefront:
+#### 1. From the Root Directory (Recommended)
+- To run only the **Storefront**:
+  ```bash
+  pnpm storefront:dev
+  ```
+- To run only the **Backend**:
+  ```bash
+  pnpm backend:dev
+  ```
+
+#### 2. From the Respective Subdirectories
+- For the **Storefront**:
+  ```bash
+  cd apps/storefront
+  pnpm dev
+  ```
+- For the **Backend**:
+  ```bash
+  cd apps/backend
+  pnpm dev
+  ```
+
+Alternatively, you can run the following command from the root to start both the backend and storefront concurrently:
 
 ```bash
 pnpm dev
 ```
 
-## Configuration
+## Slot-Based CMS Architecture
 
-The storefront is configured via environment variables in `apps/storefront/.env.local`:
+To move away from rigid monolithic page layouts, the homepage has been refactored into a **slot-based composition architecture** powered by Payload CMS blocks.
 
-| Variable | Description | Default |
-| ---------- | ------------- | --------- |
-| `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` | Publishable API key from your Medusa backend | — |
-| `NEXT_PUBLIC_MEDUSA_BACKEND_URL` | URL of your Medusa backend | `http://localhost:9000` |
-| `NEXT_PUBLIC_DEFAULT_REGION` | Default region country code | `dk` |
-| `NEXT_PUBLIC_BASE_URL` | Base URL of the storefront | `https://localhost:8000` |
-| `NEXT_PUBLIC_STRIPE_KEY` | Stripe publishable key (optional) | — |
+* **Orchestration Page:** The storefront renders the homepage dynamically by querying the `pages` collection for a document with the slug `home`.
+* **Component Registry:** The page layout maps incoming Payload blocks to isolated, modular React components:
+  * **Hero Block (`hero`)** &rarr; `src/components/blocks/HeroBlock.tsx`
+  * **Product Grid Block (`productGrid`)** &rarr; `src/components/blocks/ProductGridBlock.tsx` (populates copy from Payload and product lists dynamically from the Medusa SDK).
+  * **Manifesto Block (`manifesto`)** &rarr; `src/components/blocks/ManifestoBlock.tsx`
+  * **Asymmetrical Grid Block (`asymmetrical-grid`)** &rarr; `src/components/blocks/AsymmetricalGridBlock.tsx` (formerly the Teaser section).
+
+---
+
+## Modifying the Homepage via Payload CMS
+
+Instead of editing isolated collections like `HeroBanners` or `Lookbooks`, all homepage blocks are managed centrally under the **Pages** collection:
+
+### 1. Locate the Homepage Document
+1. Log into your Payload CMS Admin dashboard (default: `http://localhost:8000/admin`).
+2. Navigate to **Pages** in the sidebar.
+3. Edit the existing page with the slug **`home`** (or create a new page and set the Title to `Home` and the Slug exactly to `home`).
+
+### 2. Compose the Layout (Drag and Drop Blocks)
+Under the **Layout** section of the `home` document:
+* **Add Blocks:** Click the **Add Layout** button to append new blocks (e.g. *Hero Block*, *Product Grid*, *Asymmetrical Grid*).
+* **Reorder Blocks:** Drag and drop blocks to rearrange the rendering sequence on the storefront.
+* **Delete Blocks:** Click the **Remove** (X) icon on any block card.
+* **Fill out Block Fields:**
+  * Ensure all required fields (like the *Image* inside a *Hero Block* or *imageUrl* and *targetHandle* in an *Asymmetrical Grid*) are completed before saving, or Payload will return validation errors (`400 Bad Request`).
+
+### 3. Save and Purge Cache
+* Click **Save** or **Publish** at the top right of the editor.
+* Refresh your storefront page (`http://localhost:8000/`) to view the changes instantly.
+
+---
+
+## Architectural Notes (Local DB Synchronization)
+
+In local development, Payload's automated `db push` is configured to `push: false` inside `payload.config.ts`. This prevents database startups from throwing drop-constraint transaction locks on PostgreSQL schemas. Legacy database tables (like `hero_banners` and `lookbooks`) are preserved but hidden (`hidden: true`) from the Admin Panel sidebar to avoid data loss.
 
 ## Resources
 
@@ -204,6 +255,7 @@ We have integrated convenient shortcuts to access the admin dashboards directly 
 ### 2. Medusa Admin Dashboard (`/app` on Backend)
 - **Global Keyboard Shortcut:** Press `Alt + Shift + M` (or `Ctrl + Shift + M`) on any storefront page to automatically open the Medusa Admin dashboard (`http://localhost:9000/app`) in a new tab.
 - **Direct Link:** Directly accessible at `http://localhost:9000/app`.
+
 
 
 

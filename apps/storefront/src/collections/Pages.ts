@@ -1,4 +1,7 @@
 import { CollectionConfig, Block } from 'payload'
+import { HeroBlockConfig } from './blocks/HeroConfig'
+import { ProductGridConfig } from './blocks/ProductGridConfig'
+import { ManifestoConfig } from './blocks/ManifestoConfig'
 
 const AsymmetricalGridBlock: Block = {
   slug: 'asymmetrical-grid',
@@ -79,9 +82,15 @@ export const Pages: CollectionConfig = {
       },
     },
     {
-      name: 'layout_blocks',
+      name: 'layout',
       type: 'blocks',
-      blocks: [AsymmetricalGridBlock],
+      minRows: 1,
+      blocks: [
+        HeroBlockConfig,
+        ProductGridConfig,
+        ManifestoConfig,
+        AsymmetricalGridBlock,
+      ],
       admin: {
         description: 'Dynamic composition of layouts for this page',
       },

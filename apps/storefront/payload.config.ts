@@ -4,6 +4,7 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
+import { Media } from './src/collections/Media'
 import { Users } from './src/collections/Users'
 import { HeroBanners } from './src/collections/HeroBanners'
 import { Lookbooks } from './src/collections/Lookbooks'
@@ -19,7 +20,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, HeroBanners, Lookbooks, Pages, OTPs],
+  collections: [Users, HeroBanners, Lookbooks, Pages, OTPs, Media],
   editor: lexicalEditor({}),
   secret: process.env.PAYLOAD_SECRET || 'supersecretpayloadkey123',
   typescript: {
@@ -29,5 +30,6 @@ export default buildConfig({
     pool: {
       connectionString: process.env.PAYLOAD_DATABASE_URL || '',
     },
+    push: false,
   }),
 })

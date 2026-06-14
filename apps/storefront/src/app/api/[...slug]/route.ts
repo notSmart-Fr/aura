@@ -8,6 +8,7 @@ import {
 } from '@payloadcms/next/routes'
 import config from '../../../../payload.config'
 
+// Force hot reload of payload config
 export const GET = REST_GET(config)
 export const POST = REST_POST(config)
 export const PATCH = REST_PATCH(config)

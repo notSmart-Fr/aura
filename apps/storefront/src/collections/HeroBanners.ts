@@ -5,6 +5,7 @@ export const HeroBanners: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'createdAt'],
+    hidden: true,
   },
   fields: [
     {
