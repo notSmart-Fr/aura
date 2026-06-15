@@ -165,22 +165,30 @@ The storefront runs on `http://localhost:8000`.
 You can also run the storefront and backend separately.
 
 #### 1. From the Root Directory (Recommended)
+
 - To run only the **Storefront**:
+
   ```bash
   pnpm storefront:dev
   ```
+
 - To run only the **Backend**:
+
   ```bash
   pnpm backend:dev
   ```
 
 #### 2. From the Respective Subdirectories
+
 - For the **Storefront**:
+
   ```bash
   cd apps/storefront
   pnpm dev
   ```
+
 - For the **Backend**:
+
   ```bash
   cd apps/backend
   pnpm dev
@@ -196,12 +204,12 @@ pnpm dev
 
 To move away from rigid monolithic page layouts, the homepage has been refactored into a **slot-based composition architecture** powered by Payload CMS blocks.
 
-* **Orchestration Page:** The storefront renders the homepage dynamically by querying the `pages` collection for a document with the slug `home`.
-* **Component Registry:** The page layout maps incoming Payload blocks to isolated, modular React components:
-  * **Hero Block (`hero`)** &rarr; `src/components/blocks/HeroBlock.tsx`
-  * **Product Grid Block (`productGrid`)** &rarr; `src/components/blocks/ProductGridBlock.tsx` (populates copy from Payload and product lists dynamically from the Medusa SDK).
-  * **Manifesto Block (`manifesto`)** &rarr; `src/components/blocks/ManifestoBlock.tsx`
-  * **Asymmetrical Grid Block (`asymmetrical-grid`)** &rarr; `src/components/blocks/AsymmetricalGridBlock.tsx` (formerly the Teaser section).
+- **Orchestration Page:** The storefront renders the homepage dynamically by querying the `pages` collection for a document with the slug `home`.
+- **Component Registry:** The page layout maps incoming Payload blocks to isolated, modular React components:
+  - **Hero Block (`hero`)** &rarr; `src/components/blocks/HeroBlock.tsx`
+  - **Product Grid Block (`productGrid`)** &rarr; `src/components/blocks/ProductGridBlock.tsx` (populates copy from Payload and product lists dynamically from the Medusa SDK).
+  - **Manifesto Block (`manifesto`)** &rarr; `src/components/blocks/ManifestoBlock.tsx`
+  - **Asymmetrical Grid Block (`asymmetrical-grid`)** &rarr; `src/components/blocks/AsymmetricalGridBlock.tsx` (formerly the Teaser section).
 
 ---
 
@@ -210,21 +218,26 @@ To move away from rigid monolithic page layouts, the homepage has been refactore
 Instead of editing isolated collections like `HeroBanners` or `Lookbooks`, all homepage blocks are managed centrally under the **Pages** collection:
 
 ### 1. Locate the Homepage Document
+
 1. Log into your Payload CMS Admin dashboard (default: `http://localhost:8000/admin`).
 2. Navigate to **Pages** in the sidebar.
 3. Edit the existing page with the slug **`home`** (or create a new page and set the Title to `Home` and the Slug exactly to `home`).
 
 ### 2. Compose the Layout (Drag and Drop Blocks)
+
 Under the **Layout** section of the `home` document:
-* **Add Blocks:** Click the **Add Layout** button to append new blocks (e.g. *Hero Block*, *Product Grid*, *Asymmetrical Grid*).
-* **Reorder Blocks:** Drag and drop blocks to rearrange the rendering sequence on the storefront.
-* **Delete Blocks:** Click the **Remove** (X) icon on any block card.
-* **Fill out Block Fields:**
-  * Ensure all required fields (like the *Image* inside a *Hero Block* or *imageUrl* and *targetHandle* in an *Asymmetrical Grid*) are completed before saving, or Payload will return validation errors (`400 Bad Request`).
+
+- **Add Blocks:** Click the **Add Layout** button to append new blocks (e.g. *Hero Block*, *Product Grid*, *Asymmetrical Grid*).
+- **Reorder Blocks:** Drag and drop blocks to rearrange the rendering sequence on the storefront.
+- **Delete Blocks:** Click the **Remove** (X) icon on any block card.
+- **Fill out Block Fields:**
+  - Ensure all required fields (like the *Image* inside a *Hero Block* or *imageUrl* and *targetHandle* in an *Asymmetrical Grid*) are completed before saving, or Payload will return validation errors (`400 Bad Request`).
 
 ### 3. Save and Purge Cache
-* Click **Save** or **Publish** at the top right of the editor.
-* Refresh your storefront page (`http://localhost:8000/`) to view the changes instantly.
+
+- Click **Save** or **Publish** at the top right of the editor.
+
+- Refresh your storefront page (`http://localhost:8000/`) to view the changes instantly.
 
 ---
 
@@ -248,11 +261,13 @@ Medusa Admin: <http://localhost:9000/app>
 We have integrated convenient shortcuts to access the admin dashboards directly from the storefront:
 
 ### 1. Payload CMS Admin Dashboard (`/admin`)
+
 - **Global Keyboard Shortcut:** Press `Alt + Shift + A` (or `Ctrl + Shift + A`) on any storefront page to automatically open the Payload CMS Admin dashboard in a new tab.
 - **Dynamic Navigation Link:** When logged in as an admin (`user.role === 'admin'`), a `"✦ DASHBOARD"` text link is displayed on the right side of the navigation bar that opens the Payload CMS Admin dashboard in a new tab.
 - **Direct Link:** Directly accessible at `http://localhost:8000/admin`.
 
 ### 2. Medusa Admin Dashboard (`/app` on Backend)
+
 - **Global Keyboard Shortcut:** Press `Alt + Shift + M` (or `Ctrl + Shift + M`) on any storefront page to automatically open the Medusa Admin dashboard (`http://localhost:9000/app`) in a new tab.
 - **Direct Link:** Directly accessible at `http://localhost:9000/app`.## Troubleshooting: ESLint v9 Flat Config & Custom AST Firewall
 
@@ -261,23 +276,23 @@ During the implementation of the strict compile-time database firewall (guarding
 ### Resolved Configuration Bottlenecks
 
 1. **Next.js CLI Shim Wrapper Bug**
-   * **Problem:** Running `pnpm lint` or `pnpm --filter=@dtc/storefront lint` caused Next.js to parse the word `lint` as a target directory, throwing `Invalid project directory provided: .../storefront/lint`.
-   * **Solution:** Bypass the Next.js CLI wrapper by executing ESLint directly inside the storefront directory:
+   - **Problem:** Running `pnpm lint` or `pnpm --filter=@dtc/storefront lint` caused Next.js to parse the word `lint` as a target directory, throwing `Invalid project directory provided: .../storefront/lint`.
+   - **Solution:** Bypass the Next.js CLI wrapper by executing ESLint directly inside the storefront directory:
+
      ```bash
      cd apps/storefront
      npx eslint .
      ```
 
 2. **ESLint v9 Legacy JSON Parser Crash**
-   * **Problem:** Direct execution of ESLint against the legacy `.eslintrc.json` file failed with:
+   - **Problem:** Direct execution of ESLint against the legacy `.eslintrc.json` file failed with:
      `TypeError [ERR_IMPORT_ATTRIBUTE_MISSING]: Module ".../.eslintrc.json" needs an import attribute of "type: json"`
-   * **Solution:** Deleted/cleared `.eslintrc.json` and migrated all rules to the modern flat ES module format inside `eslint.config.mjs`.
+   - **Solution:** Deleted/cleared `.eslintrc.json` and migrated all rules to the modern flat ES module format inside `eslint.config.mjs`.
 
 3. **pnpm Strict Module Isolation (Missing `@eslint/eslintrc`)**
-   * **Problem:** Spreading `eslint-config-next` configurations directly in the flat config failed due to legacy CommonJS dependencies. Initializing `FlatCompat` to resolve them resulted in a `Cannot find package '@eslint/eslintrc'` crash because pnpm isolates nested workspace dependencies.
-   * **Solution:** Declared `@eslint/eslintrc` explicitly inside the storefront package's `devDependencies` (`apps/storefront/package.json`), then loaded the recommended Next.js rules through `FlatCompat` correctly.
+   - **Problem:** Spreading `eslint-config-next` configurations directly in the flat config failed due to legacy CommonJS dependencies. Initializing `FlatCompat` to resolve them resulted in a `Cannot find package '@eslint/eslintrc'` crash because pnpm isolates nested workspace dependencies.
+   - **Solution:** Declared `@eslint/eslintrc` explicitly inside the storefront package's `devDependencies` (`apps/storefront/package.json`), then loaded the recommended Next.js rules through `FlatCompat` correctly.
 
 4. **Linting Build Artifacts (`.next/` Caches)**
-   * **Problem:** By default, ESLint v9 flat config analyzed compiled server and chunk files inside `.next/`, throwing irrelevant errors.
-   * **Solution:** Declared a global `ignores` list (`.next/**`, `build/**`, etc.) at the very top of `eslint.config.mjs` to target source files only.
-
+   - **Problem:** By default, ESLint v9 flat config analyzed compiled server and chunk files inside `.next/`, throwing irrelevant errors.
+   - **Solution:** Declared a global `ignores` list (`.next/**`, `build/**`, etc.) at the very top of `eslint.config.mjs` to target source files only.

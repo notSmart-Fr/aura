@@ -87,3 +87,18 @@ Before returning any generated code block, run a verification loop against these
 3. Did I leak visual rendering markup into an orchestration route file inside `src/app/`? (If yes, move it to `src/modules/`).
 
 Execute all changes matching these strict parameters exactly. Do not provide architectural alternatives or suggest different structures unless explicitly asked.
+
+---
+
+## 5. COMPILE-TIME AST GUARDRAIL (NETWORK & FIREWALL BLOCKER)
+
+To prevent developers and coding agents from accidentally bypassing our service wrappers, this workspace enforces an un-bypassable lint-time firewall.
+
+- **The Firewall Constraint:** Next.js frontend components must never import direct Medusa database handlers or SQL/ORM abstraction clients (such as imports referencing `/db/medusa`). All commerce queries and mutations must flow strictly through the Medusa service API client wrapper.
+- **Mechanical AST Enforcement:** This guardrail is configured inside `apps/storefront/eslint.config.mjs` using the AST selector:
+
+  ```json
+  "selector": "ImportDeclaration[source.value=/\\/db\\/medusa/]"
+  ```
+
+- **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If a violation is caught, agents must immediately refactor their code to use the network API wrapper.

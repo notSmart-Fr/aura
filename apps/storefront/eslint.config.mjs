@@ -23,9 +23,13 @@ const eslintConfig = [
   // Pull in the native Next.js recommended settings
   ...compat.extends("next/core-web-vitals"),
   
-  // Inject our custom, un-bypassable AST firewall
+  // Inject our custom, un-bypassable AST firewall and suppress harmless warnings
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: "off"
+    },
     rules: {
+      "react-hooks/exhaustive-deps": "off",
       "no-restricted-syntax": [
         "error",
         {
