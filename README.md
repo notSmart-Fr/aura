@@ -254,8 +254,30 @@ We have integrated convenient shortcuts to access the admin dashboards directly 
 
 ### 2. Medusa Admin Dashboard (`/app` on Backend)
 - **Global Keyboard Shortcut:** Press `Alt + Shift + M` (or `Ctrl + Shift + M`) on any storefront page to automatically open the Medusa Admin dashboard (`http://localhost:9000/app`) in a new tab.
-- **Direct Link:** Directly accessible at `http://localhost:9000/app`.
+- **Direct Link:** Directly accessible at `http://localhost:9000/app`.## Troubleshooting: ESLint v9 Flat Config & Custom AST Firewall
 
+During the implementation of the strict compile-time database firewall (guarding against Next.js components directly importing Medusa database handlers), the project was migrated from legacy `.eslintrc.json` to the modern ESLint v9 Flat Config format (`eslint.config.mjs`).
 
+### Resolved Configuration Bottlenecks
 
+1. **Next.js CLI Shim Wrapper Bug**
+   * **Problem:** Running `pnpm lint` or `pnpm --filter=@dtc/storefront lint` caused Next.js to parse the word `lint` as a target directory, throwing `Invalid project directory provided: .../storefront/lint`.
+   * **Solution:** Bypass the Next.js CLI wrapper by executing ESLint directly inside the storefront directory:
+     ```bash
+     cd apps/storefront
+     npx eslint .
+     ```
+
+2. **ESLint v9 Legacy JSON Parser Crash**
+   * **Problem:** Direct execution of ESLint against the legacy `.eslintrc.json` file failed with:
+     `TypeError [ERR_IMPORT_ATTRIBUTE_MISSING]: Module ".../.eslintrc.json" needs an import attribute of "type: json"`
+   * **Solution:** Deleted/cleared `.eslintrc.json` and migrated all rules to the modern flat ES module format inside `eslint.config.mjs`.
+
+3. **pnpm Strict Module Isolation (Missing `@eslint/eslintrc`)**
+   * **Problem:** Spreading `eslint-config-next` configurations directly in the flat config failed due to legacy CommonJS dependencies. Initializing `FlatCompat` to resolve them resulted in a `Cannot find package '@eslint/eslintrc'` crash because pnpm isolates nested workspace dependencies.
+   * **Solution:** Declared `@eslint/eslintrc` explicitly inside the storefront package's `devDependencies` (`apps/storefront/package.json`), then loaded the recommended Next.js rules through `FlatCompat` correctly.
+
+4. **Linting Build Artifacts (`.next/` Caches)**
+   * **Problem:** By default, ESLint v9 flat config analyzed compiled server and chunk files inside `.next/`, throwing irrelevant errors.
+   * **Solution:** Declared a global `ignores` list (`.next/**`, `build/**`, etc.) at the very top of `eslint.config.mjs` to target source files only.
 
