@@ -71,6 +71,15 @@ Refer to [agent.md](file:///i:/Easytech/agent.md) for the locked directory struc
 - **Rule C (Context Containment):** Work locally within atomic leaf folders when editing components. Do not modify parent configurations.
 - **Rule D (Data State Mutability):** Do not write custom `fetch()` or Axios setups for commerce endpoints; rely on the global SDK handler.
 
+### 4. Compile-Time AST Guardrails
+
+This workspace enforces automated AST-based firewalls on commit and lint stages to ensure strict security and decoupling contracts:
+
+- **Rule 1 (Decoupled Commerce):** Next.js components must never import direct Medusa database handlers. All queries/mutations must flow through the Medusa service API client wrapper.
+- **Rule 2 (Access Control Gate):** Payload CMS access control rules cannot be set directly to `true`. They must verify authenticated sessions or user identity.
+- **Rule 3 (Secure Server Actions):** Files using `'use server'` that perform database mutations must explicitly reference a `session`, `auth`, or `user` variable.
+- **Rule 4 (Idempotent Webhooks):** Webhook `POST` endpoints executing mutations must reference an `idempotency`, `signature`, `eventId`, or `nonce` variable to guard against race conditions and event replays.
+
 ## Features
 
 - All of [Medusa's commerce features](https://docs.medusajs.com/resources/commerce-modules)

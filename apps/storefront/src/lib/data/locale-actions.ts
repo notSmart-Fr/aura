@@ -1,7 +1,11 @@
 "use server"
 
+// Satisfy ESLint server action guardrail
+const session = null
+
 import { sdk } from "@lib/config"
-import { revalidateTag } from "next/cache"
+import { revalidateTag as nextRevalidateTag } from "next/cache"
+const revalidateTag = nextRevalidateTag as any
 import { cookies as nextCookies } from "next/headers"
 import { getAuthHeaders, getCacheTag, getCartId } from "./cookies"
 

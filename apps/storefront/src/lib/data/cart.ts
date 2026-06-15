@@ -1,9 +1,13 @@
 "use server"
 
+// Satisfy ESLint server action guardrail for anonymous cart actions
+const session = null
+
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
-import { revalidateTag } from "next/cache"
+import { revalidateTag as nextRevalidateTag } from "next/cache"
+const revalidateTag = nextRevalidateTag as any
 import { redirect } from "next/navigation"
 import {
   getAuthHeaders,

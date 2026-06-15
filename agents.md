@@ -90,15 +90,44 @@ Execute all changes matching these strict parameters exactly. Do not provide arc
 
 ---
 
-## 5. COMPILE-TIME AST GUARDRAIL (NETWORK & FIREWALL BLOCKER)
+## 5. COMPILE-TIME AST GUARDRAIL (NETWORK & SECURITY FIREWALL)
 
-To prevent developers and coding agents from accidentally bypassing our service wrappers, this workspace enforces an un-bypassable lint-time firewall.
+To prevent developers and coding agents from accidentally introducing architectural leaks or security holes, this workspace enforces un-bypassable lint-time firewalls.
 
-- **The Firewall Constraint:** Next.js frontend components must never import direct Medusa database handlers or SQL/ORM abstraction clients (such as imports referencing `/db/medusa`). All commerce queries and mutations must flow strictly through the Medusa service API client wrapper.
-- **Mechanical AST Enforcement:** This guardrail is configured inside `apps/storefront/eslint.config.mjs` using the AST selector:
+### Rule 1: Decoupled Commerce Layer
+
+- **The Constraint:** Next.js frontend components must never import direct Medusa database handlers or SQL/ORM abstraction clients (such as imports referencing `/db/medusa`). All commerce queries and mutations must flow strictly through the Medusa service API client wrapper.
+- **AST Selector:**
 
   ```json
-  "selector": "ImportDeclaration[source.value=/\\/db\\/medusa/]"
+  "ImportDeclaration[source.value=/\\/db\\/medusa/]"
   ```
 
-- **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If a violation is caught, agents must immediately refactor their code to use the network API wrapper.
+### Rule 2: Secure Access Control Gate (Payload CMS)
+
+- **The Constraint:** You are strictly forbidden from assigning Payload CMS access control rules directly to `true` or to anonymous arrow functions that return `true` (e.g. `read: () => true`). You must implement explicit, authenticated session or user identity checks.
+- **AST Selector:**
+
+  ```json
+  "Property[key.name='access'] Property[key.name=/^(read|update|delete)$/][value.body.value=true]"
+  ```
+
+### Rule 3: Secure Server Actions (Payload CMS)
+
+- **The Constraint:** In Payload 3.0's native Next.js architecture, Server Actions are exposed HTTP vectors. We must mechanically block any agent or developer from writing blind server action mutations that do not validate the active user's session context. Files using 'use server' that execute database mutations must explicitly reference a `session`, `auth`, or `user` variable to enforce ownership validation.
+- **AST Selector:**
+
+  ```json
+  "Program:has(ExpressionStatement[expression.value='use server']):not(:has(Identifier[name=/^(auth|session|user)$/])) CallExpression[callee.property.name=/^(create|update|delete)$/]"
+  ```
+
+### Rule 4: Secure Data Synchronization Webhooks
+
+- **The Constraint:** Asynchronous data synchronization and incoming webhook handlers (exporting `POST`) performing database or store mutations must explicitly handle an `idempotency` key, `signature`, `eventId`, or `nonce` variable to guard against network race conditions, event replay attacks, and data drift.
+- **AST Selector:**
+
+  ```json
+  "Program:has(ExportNamedDeclaration [id.name='POST']):not(:has(Identifier[name=/^(idempotency|signature|eventId|nonce)$/i])) CallExpression[callee.property.name=/^(update|create|upsert)$/]"
+  ```
+
+- **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If any violation is caught, agents must immediately refactor their code to comply with these rules.

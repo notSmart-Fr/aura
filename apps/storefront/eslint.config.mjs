@@ -35,6 +35,18 @@ const eslintConfig = [
         {
           "selector": "ImportDeclaration[source.value=/\\/db\\/medusa/]",
           "message": "CRITICAL ARCHITECTURAL VIOLATION: Next.js components must never import direct Medusa database handlers. All commerce mutations and queries must flow strictly through the Medusa service API client wrapper."
+        },
+        {
+          "selector": "Property[key.name='access'] Property[key.name=/^(read|update|delete)$/][value.body.value=true]",
+          "message": "CRITICAL SECURITY VIOLATION: Wide-open public access controls detected. You are strictly forbidden from assigning an access rule directly to 'true' or an arrow function returning 'true'. You must implement an explicit, authenticated session or user identity check."
+        },
+        {
+          "selector": "Program:has(ExpressionStatement[expression.value='use server']):not(:has(Identifier[name=/^(auth|session|user)$/])) CallExpression[callee.property.name=/^(create|update|delete)$/]",
+          "message": "CRITICAL SECURITY VIOLATION: Unprotected Server Action Mutation. Files using 'use server' that execute database mutations must explicitly reference a session, auth, or user variable to enforce ownership validation. Never blindly execute mutations using raw client-side string arguments."
+        },
+        {
+          "selector": "Program:has(ExportNamedDeclaration [id.name='POST']):not(:has(Identifier[name=/^(idempotency|signature|eventId|nonce)$/i])) CallExpression[callee.property.name=/^(update|create|upsert)$/]",
+          "message": "CRITICAL ARCHITECTURAL VIOLATION: Unprotected Webhook / Sync Route. Asynchronous event handlers performing mutations must explicitly handle an 'idempotency' key, 'signature', or 'eventId' variable to guard against race conditions, replay attacks, and data drift."
         }
       ]
     }
