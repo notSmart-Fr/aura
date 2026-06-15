@@ -57,6 +57,20 @@ export function generateProductDescription(product: any): string {
   return `Title: ${title}\nHandle: ${handle}\nDescription: ${description}\nTags: ${tags}`.trim();
 }
 
+let columnEnsured = false;
+export async function ensureThumbnailColumn(pool: Pool) {
+  if (columnEnsured) return;
+  const client = await pool.connect();
+  try {
+    await client.query(`ALTER TABLE product_embeddings ADD COLUMN IF NOT EXISTS thumbnail TEXT;`);
+    columnEnsured = true;
+  } catch (err) {
+    console.error("Error ensuring thumbnail column exists:", err);
+  } finally {
+    client.release();
+  }
+}
+
 /**
  * Store or update a product embedding in the PostgreSQL database.
  */
@@ -80,14 +94,16 @@ export async function upsertProductEmbedding(
 
   // 3. Write/update inside the product_embeddings PostgreSQL table
   const dbPool = getDbPool();
+  await ensureThumbnailColumn(dbPool);
   await dbPool.query(
-    `INSERT INTO product_embeddings (id, product_id, handle, title, description, embedding, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6::vector, CURRENT_TIMESTAMP)
+    `INSERT INTO product_embeddings (id, product_id, handle, title, description, thumbnail, embedding, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::vector, CURRENT_TIMESTAMP)
      ON CONFLICT (product_id) 
      DO UPDATE SET 
        handle = EXCLUDED.handle,
        title = EXCLUDED.title,
        description = EXCLUDED.description,
+       thumbnail = EXCLUDED.thumbnail,
        embedding = EXCLUDED.embedding,
        updated_at = CURRENT_TIMESTAMP`,
     [
@@ -96,6 +112,7 @@ export async function upsertProductEmbedding(
       product.handle || "",
       product.title || "",
       product.description || "",
+      product.thumbnail || "",
       embeddingString
     ]
   );

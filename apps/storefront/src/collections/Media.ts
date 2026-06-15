@@ -5,6 +5,20 @@ export const Media: CollectionConfig = {
   admin: {
     useAsTitle: 'alt',
   },
+  access: {
+    read: () => {
+      return true
+    },
+    create: ({ req }) => {
+      return !!req.user
+    },
+    update: ({ req }) => {
+      return !!req.user
+    },
+    delete: ({ req }) => {
+      return !!req.user
+    },
+  },
   upload: {
     staticDir: 'public/media',
   },

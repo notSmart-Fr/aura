@@ -128,9 +128,19 @@ Our storefront implements AI-powered semantic search that allows users to find p
 ```
 
 #### Ingested Model Specifications
+
 - **Model:** `gemini-embedding-2`
 - **Output Dimensions:** Truncated/sliced to `1,536` dimensions (leveraging Matryoshka Representation Learning) to stay within PostgreSQL's HNSW graph index limits (< 2,000 dimensions).
 - **Index Type:** HNSW (Hierarchical Navigable Small World) with Cosine distance metric.
+
+### AI Visual Concierge (Support Chat Agent)
+
+The customer support agent is equipped with a Visual Concierge capability that integrates natural language understanding with the catalog database:
+
+- **Intelligent Search Routing**: Invokes the `searchCatalog` database tool to retrieve semantic search recommendations.
+- **Rich Interactive Cards**: Renders matching catalog records using Next.js `<Image />` components inside zero-border-radius (`rounded-none`) wrappers.
+- **Direct Buy Links**: Wraps product cards in standard localized HTML anchor (`<a>`) elements to enable instant navigation to purchase paths.
+- **Garment Color Preservation**: Complies with luxury storefront restraints by using color-preserving hover animations (e.g. scale transformations) and avoiding all desaturating or color-filtering CSS parameters.
 
 ## Getting Started
 

@@ -76,6 +76,14 @@ When working on a styling or visual change for a layout component (such as modif
 - Do not write raw `fetch()` utilities or custom Axios setups to query backend endpoints. You must strictly use the global SDK handler.
 - Do not attempt to re-engineer cart configurations or build local storage state machines for transactional steps. Rely entirely on the pre-configured Next.js server actions and context frameworks built into the Medusa template layout.
 
+### Rule E: Visual Concierge & Widget Interactions (Support Chat)
+
+When implementing visual elements or rendering catalog query results inside transactional widgets (such as the customer support chat):
+
+- All result links must be wrapped in standard HTML `<a>` tags utilizing proper country-code routing localization (`/${countryCode}/products/${handle}`).
+- Product thumbnail displays must use the Next.js `<Image />` component with `fill` positioning inside a relative, zero-border-radius (`rounded-none`) wrapper container.
+- Hover animations must respect the 100% garment color accuracy rule, using minimalist border/background changes or image scale transitions (`group-hover:scale-105`) while avoiding all desaturating or color-shifting CSS filters.
+
 ---
 
 ## 4. VERIFICATION CHECKLIST FOR CODE GENERATION

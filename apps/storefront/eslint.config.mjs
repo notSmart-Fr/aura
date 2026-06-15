@@ -55,6 +55,10 @@ const eslintConfig = [
         {
           "selector": "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='onChange']):not(:has(JSXAttribute[name.name=/^(debounce|useDebounce|value)$/]))",
           "message": "CRITICAL FRONTEND VIOLATION: Rule 6 Debounced Input Gate. You are binding a raw onChange listener directly to an input field without declaring a debouncer or controlled state handler. This will cause explosive API query floods on typing states."
+        },
+        {
+          "selector": "Program:has(CallExpression[callee.name='streamText']):not(:has(Identifier[name='validateAndFilterOutput']))",
+          "message": "CRITICAL SECURITY VIOLATION: Rule 7 Context Drift Firewall. Any route invoking streamText must pass the output through the validateAndFilterOutput sanitization filter to prevent refund/context drift exploits."
         }
       ]
     }
