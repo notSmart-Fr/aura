@@ -130,4 +130,13 @@ To prevent developers and coding agents from accidentally introducing architectu
   "Program:has(ExportNamedDeclaration [id.name='POST']):not(:has(Identifier[name=/^(idempotency|signature|eventId|nonce)$/i])) CallExpression[callee.property.name=/^(update|create|upsert)$/]"
   ```
 
+### Rule 5: Throttled Batch Embeddings (Concurrency Gate)
+
+- **The Constraint:** To protect external embedding model APIs from rate limits, developers and agents are prohibited from wrapping an unthrottled array mapping function directly inside a `Promise.all` execution chain. You must implement a batching or chunking mechanism.
+- **AST Selector:**
+
+  ```json
+  "CallExpression[callee.object.name='Promise'][callee.property.name='all'] > ArrayExpression > CallExpression[callee.property.name='map']:has(Identifier[name=/embed/i])"
+  ```
+
 - **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If any violation is caught, agents must immediately refactor their code to comply with these rules.

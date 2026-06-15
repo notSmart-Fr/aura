@@ -47,6 +47,10 @@ const eslintConfig = [
         {
           "selector": "Program:has(ExportNamedDeclaration [id.name='POST']):not(:has(Identifier[name=/^(idempotency|signature|eventId|nonce)$/i])) CallExpression[callee.property.name=/^(update|create|upsert)$/]",
           "message": "CRITICAL ARCHITECTURAL VIOLATION: Unprotected Webhook / Sync Route. Asynchronous event handlers performing mutations must explicitly handle an 'idempotency' key, 'signature', or 'eventId' variable to guard against race conditions, replay attacks, and data drift."
+        },
+        {
+          "selector": "CallExpression[callee.object.name='Promise'][callee.property.name='all'] > ArrayExpression > CallExpression[callee.property.name='map']:has(Identifier[name=/embed/i])",
+          "message": "CRITICAL AI ENGINEERING VIOLATION: Rule 5 Concurrency Gate. You are wrapping an open database array mapping directly into Promise.all without a throttle. Use a batching or chunking mechanism to prevent API rate limits."
         }
       ]
     }

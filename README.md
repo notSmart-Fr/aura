@@ -79,6 +79,7 @@ This workspace enforces automated AST-based firewalls on commit and lint stages 
 - **Rule 2 (Access Control Gate):** Payload CMS access control rules cannot be set directly to `true`. They must verify authenticated sessions or user identity.
 - **Rule 3 (Secure Server Actions):** Files using `'use server'` that perform database mutations must explicitly reference a `session`, `auth`, or `user` variable.
 - **Rule 4 (Idempotent Webhooks):** Webhook `POST` endpoints executing mutations must reference an `idempotency`, `signature`, `eventId`, or `nonce` variable to guard against race conditions and event replays.
+- **Rule 5 (Concurrency Gate):** Restricts the use of open array mappings inside `Promise.all` in files handling embeddings, preventing API rate limit exhaustion.
 
 ## Features
 
