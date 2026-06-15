@@ -91,6 +91,47 @@ This workspace enforces automated AST-based firewalls on commit and lint stages 
 - Customer accounts with order history and address management
 - Order transfer between accounts
 
+### Semantic Searching Feature
+
+Our storefront implements AI-powered semantic search that allows users to find products using natural language queries, supported by real-time catalog syncing and a robust AST compiler firewall.
+
+```text
+                  ┌─────────────────────────────────────────┐
+                  │   ESLint v9 AST Compile-Time Firewall   │
+                  └─────────────────────────────────────────┘
+        Rule 1: Commerce Decoupling | Rule 2: CMS Access Gate
+        Rule 3: Tenant Isolation    | Rule 4: Idempotent Webhooks
+        Rule 5: AI Inference Concurrency Gate
+                                       │
+                                       ▼
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                      AUTOMATED INGESTION ENGINE                        │
+  └────────────────────────────────────────────────────────────────────────┘
+    [Medusa/Payload Mutations] ──► [Idempotent Webhook Route Handler]
+                                                   │
+                                                   ▼
+                                        [Throttled Batch Engine]
+                                                   │
+                                                   ▼
+                                      [Gemini Embedding 2 API]
+                                                   │
+                                                   ▼
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                         DATA & RETRIEVAL TIER                          │
+  └────────────────────────────────────────────────────────────────────────┘
+                                    [Neon PostgreSQL]
+                             (pgvector + HNSW Graph Index)
+                                       ▲       │
+                       Query Vector    │       │  Matched Products (ms)
+                      (<=> Cosine Dist)│       ▼
+                               [Public Search API Endpoint]
+```
+
+#### Ingested Model Specifications
+- **Model:** `gemini-embedding-2`
+- **Output Dimensions:** Truncated/sliced to `1,536` dimensions (leveraging Matryoshka Representation Learning) to stay within PostgreSQL's HNSW graph index limits (< 2,000 dimensions).
+- **Index Type:** HNSW (Hierarchical Navigable Small World) with Cosine distance metric.
+
 ## Getting Started
 
 ### Deploy with Medusa Cloud

@@ -51,6 +51,10 @@ const eslintConfig = [
         {
           "selector": "CallExpression[callee.object.name='Promise'][callee.property.name='all'] > ArrayExpression > CallExpression[callee.property.name='map']:has(Identifier[name=/embed/i])",
           "message": "CRITICAL AI ENGINEERING VIOLATION: Rule 5 Concurrency Gate. You are wrapping an open database array mapping directly into Promise.all without a throttle. Use a batching or chunking mechanism to prevent API rate limits."
+        },
+        {
+          "selector": "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='onChange']):not(:has(JSXAttribute[name.name=/^(debounce|useDebounce|value)$/]))",
+          "message": "CRITICAL FRONTEND VIOLATION: Rule 6 Debounced Input Gate. You are binding a raw onChange listener directly to an input field without declaring a debouncer or controlled state handler. This will cause explosive API query floods on typing states."
         }
       ]
     }

@@ -1,4 +1,4 @@
-import { generateEmbedding, upsertProductEmbedding, ProductEmbedding } from "./embeddings";
+import { generateEmbedding, upsertProductEmbedding } from "./embeddings";
 
 interface BatchOptions {
   batchSize: number;
@@ -6,37 +6,40 @@ interface BatchOptions {
 }
 
 /**
+ * Generic chunking utility to process arrays in strict, controlled sequential blocks to respect API rate limits.
+ */
+export async function processInBatches<T>(
+  items: T[],
+  batchSize: number,
+  callback: (batch: T[]) => Promise<void>
+): Promise<void> {
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    await callback(batch);
+  }
+}
+
+/**
  * Process products in chunks/batches to respect embedding API rate limits.
  * Avoids wrapping an open .map(embed) inside Promise.all directly.
  */
 export async function batchProcessEmbeddings(
-  dbConnection: any,
-  products: { id: string; handle: string; title: string; description: string }[],
+  products: { id: string; description: string }[],
   options: BatchOptions = { batchSize: 5, delayMs: 100 }
 ): Promise<void> {
   const { batchSize, delayMs } = options;
 
-  for (let i = 0; i < products.length; i += batchSize) {
-    const chunk = products.slice(i, i + batchSize);
-
-    // Concurrency throttle: process a limited batch sequentially or in controlled parallel
+  await processInBatches(products, batchSize, async (chunk) => {
+    // Process items in the current batch concurrently, but limited to the batch size
     const promises = chunk.map(async (product) => {
-      const vector = await generateEmbedding(product.description);
-      const data: ProductEmbedding = {
-        productId: product.id,
-        handle: product.handle,
-        title: product.title,
-        description: product.description,
-        embedding: vector
-      };
-      await upsertProductEmbedding(dbConnection, data);
+      // Create embedding via text description
+      await upsertProductEmbedding(product.id, product.description);
     });
 
-    // Resolve the chunk's promises (safe since chunk is small/throttled)
     await Promise.all(promises);
 
-    if (delayMs && i + batchSize < products.length) {
+    if (delayMs) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
-  }
+  });
 }

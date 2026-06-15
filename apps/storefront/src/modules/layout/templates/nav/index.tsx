@@ -9,6 +9,7 @@ import SideMenu from "@modules/layout/components/side-menu"
 import { getPayload } from "payload"
 import config from "../../../../../payload.config"
 import { headers } from "next/headers"
+import SearchTrigger from "@/components/search/SearchTrigger"
 
 export default async function Nav() {
   const [regions, locales, currentLocale] = await Promise.all([
@@ -67,23 +68,7 @@ export default async function Nav() {
 
       {/* Right actions */}
       <div className="flex items-center gap-stack-sm text-primary">
-        <span className="cursor-pointer hover:opacity-70 transition-opacity flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-5 h-5 text-black"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </span>
+        <SearchTrigger />
         <div className="hidden small:flex items-center">
           <LocalizedClientLink
             className="hover:opacity-70 flex items-center"

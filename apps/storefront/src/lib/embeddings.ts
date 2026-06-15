@@ -4,6 +4,12 @@
  * and performing cosine-similarity semantic vector queries.
  */
 
+import { sdk } from "./config";
+import { HttpTypes } from "@medusajs/types";
+import { Pool } from "pg";
+import { google } from "@ai-sdk/google";
+import { embed } from "ai";
+
 export interface ProductEmbedding {
   productId: string;
   handle: string;
@@ -13,27 +19,68 @@ export interface ProductEmbedding {
   updatedAt?: Date;
 }
 
+let pool: Pool | null = null;
+
+export function getDbPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.PAYLOAD_DATABASE_URL,
+    });
+  }
+  return pool;
+}
+
 /**
  * Generate vector embedding for a given text snippet (e.g., product description).
  * Uses an external embedding model API (like OpenAI text-embedding-3-small).
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  // Stub: Implement API call to your vector model provider here
-  // Example: OpenAI, Cohere, or local transformer model
-  const dimension = 1536;
-  return Array.from({ length: dimension }, () => Math.random() - 0.5);
+  const { embedding } = await embed({
+    model: google.embedding("gemini-embedding-2"),
+    value: text,
+  });
+  return embedding.slice(0, 1536);
+}
+
+/**
+ * Combines a product's title, handle, description, and tags into a clean text block for the AI model to read.
+ */
+export function generateProductDescription(product: any): string {
+  if (!product) return "";
+  const title = product.title || "";
+  const handle = product.handle || "";
+  const description = product.description || "";
+  const tags = Array.isArray(product.tags)
+    ? product.tags.map((t: any) => t.value || t.name || t).join(", ")
+    : "";
+  
+  return `Title: ${title}\nHandle: ${handle}\nDescription: ${description}\nTags: ${tags}`.trim();
 }
 
 /**
  * Store or update a product embedding in the PostgreSQL database.
  */
 export async function upsertProductEmbedding(
-  dbConnection: any,
-  data: ProductEmbedding
+  productId: string,
+  text: string
 ): Promise<void> {
-  const embeddingString = `[${data.embedding.join(",")}]`;
+  // 1. Fetch the product details from Medusa to get required fields (handle, title)
+  const response = await sdk.client.fetch<{ product: HttpTypes.StoreProduct }>(
+    `/store/products/${productId}`
+  );
   
-  await dbConnection.query(
+  const product = response?.product;
+  if (!product) {
+    throw new Error(`Product not found in Medusa: ${productId}`);
+  }
+
+  // 2. Call our AI embedding model provider
+  const vector = await generateEmbedding(text);
+  const embeddingString = `[${vector.join(",")}]`;
+
+  // 3. Write/update inside the product_embeddings PostgreSQL table
+  const dbPool = getDbPool();
+  await dbPool.query(
     `INSERT INTO product_embeddings (id, product_id, handle, title, description, embedding, updated_at)
      VALUES ($1, $2, $3, $4, $5, $6::vector, CURRENT_TIMESTAMP)
      ON CONFLICT (product_id) 
@@ -44,11 +91,11 @@ export async function upsertProductEmbedding(
        embedding = EXCLUDED.embedding,
        updated_at = CURRENT_TIMESTAMP`,
     [
-      data.productId, // primary key
-      data.productId,
-      data.handle,
-      data.title,
-      data.description,
+      productId,
+      productId,
+      product.handle || "",
+      product.title || "",
+      product.description || "",
       embeddingString
     ]
   );
@@ -59,13 +106,13 @@ export async function upsertProductEmbedding(
  * Returns Medusa product IDs sorted by cosine similarity score.
  */
 export async function querySemanticProducts(
-  dbConnection: any,
   queryVector: number[],
   limit: number = 8
 ): Promise<{ productId: string; handle: string; title: string; score: number }[]> {
   const queryVectorString = `[${queryVector.join(",")}]`;
+  const dbPool = getDbPool();
 
-  const result = await dbConnection.query(
+  const result = await dbPool.query(
     `SELECT product_id, handle, title, (1 - (embedding <=> $1::vector)) AS score
      FROM product_embeddings
      ORDER BY embedding <=> $1::vector
