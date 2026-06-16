@@ -16,11 +16,19 @@
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Project Overview & Engineering Scope
 
-**Aura** elevates the standard Medusa commerce template into a high-end, production-grade digital flagship store. The storefront is built using **Next.js (App Router)**, **React**, **TypeScript**, and **Tailwind CSS**, delivering a premium, type-safe, and highly responsive user interface with strict adherence to luxury design aesthetics. By introducing a slot-based content management engine via Payload CMS and building deep AI-driven search and concierge layers, this repository demonstrates how to scale headless commerce while maintaining zero-trust code security.
+**Aura** is a highly specialized headless commerce prototype developed to showcase production-grade **Retrieval-Augmented Generation (RAG)** and **AI backend engineering** using an agentic development workflow.
 
-> 💡 **Repository Note:** This project is a heavily extended monorepo fork of the standard Medusa DTC Starter. The baseline commerce modules remain intact, while the presentation, content orchestration, and linting/security engines have been completely re-architected.
+Rather than duplicating standard, boilerplate e-commerce storefront features, this repository is deliberately scoped to isolate and demonstrate three core architectural pillars:
+
+1. **Sub-Second Semantic Vector Search Engine** via `gemini-embedding-2` and a Neon PostgreSQL `pgvector` HNSW index.
+2. **Context-Aware AI Visual Concierge Support Agent** parsing incoming infrastructure headers (`x-user-role`, `x-active-items`) natively.
+3. **Automated Structural Security Guardrails** utilizing custom compile-time AST firewalls to regulate agentic code generation.
+
+The entire presentation and backend routing layout were orchestrated within the **Google Antigravity IDE** using an independent **Cross-Model Verification Loop** to separate technical planning from code execution.
+
+> 💡 **Repository Note:** The commerce baseline uses the official Medusa DTC Starter to manage background data states (Carts, Regions). Standard user-facing utility pages that do not interact with the RAG tier or AI components are omitted to keep the engineering narrative entirely focused on AI systems infrastructure.
 
 ---
 
