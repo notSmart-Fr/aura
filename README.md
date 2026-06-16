@@ -21,6 +21,7 @@
 ---
 
 ## 🎯 Project Overview
+
 **Aura** elevates the standard Medusa commerce template into a high-end, production-grade digital flagship store. By introducing a slot-based content management engine via Payload CMS and building deep AI-driven search and concierge layers, this repository demonstrates how to scale headless commerce while maintaining zero-trust code security.
 
 > 💡 **Repository Note:** This project is a heavily extended monorepo fork of the standard Medusa DTC Starter. The baseline commerce modules remain intact, while the presentation, content orchestration, and linting/security engines have been completely re-architected.
@@ -102,7 +103,7 @@ Aura inherits and retains the complete headless engine provided by the upstream 
    pnpm install
 ```
 
-2. **Environment Synchronization:**
+1. **Environment Synchronization:**
 
 ```bash
    cp apps/backend/.env.template apps/backend/.env
@@ -111,7 +112,7 @@ Aura inherits and retains the complete headless engine provided by the upstream 
 
 *Configure your local database target URL strings inside `apps/backend/.env`.*
 
-3. **Database Setup & Local Seeding:**
+1. **Database Setup & Local Seeding:**
 
 ```bash
    cd apps/backend
@@ -119,7 +120,7 @@ Aura inherits and retains the complete headless engine provided by the upstream 
    pnpm medusa user -e admin@test.com -p supersecret
 ```
 
-4. **Boot the Workspace Engine:**
+1. **Boot the Workspace Engine:**
 
 ```bash
    # From the root workspace directory
