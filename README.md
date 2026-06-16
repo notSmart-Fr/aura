@@ -168,23 +168,24 @@ Aura inherits and retains the complete headless engine provided by the upstream 
 
 ## 🤖 Development Infrastructure & Dual-Model Workflow
 
-This repository was developed entirely by **Google's Antigravity AI Agent** within the **Google Antigravity IDE**, utilizing a strict, decoupled **Cross-Model Verification Loop** to separate initial engineering design from architectural critique.
+This repository was developed entirely through an agentic workflow within the **Google Antigravity IDE**, utilizing a strict, decoupled **Cross-Model Verification Loop** to completely separate initial code generation from architectural validation.
 
 ```text
  ┌───────────────────────────┐
- │   Google Antigravity IDE  │ ──► Proposes initial implementation plan
+ │   Google Antigravity IDE  │ ──► Generates initial implementation plan &
+ │    (Workspace Context)    │     scaffolds local atomic presentation leaf nodes
  └───────────────────────────┘
                │
-               ▼ (Exported Blueprint)
+               ▼ (Exported Code/Blueprint)
  ┌───────────────────────────┐
- │  Isolated Chat Platform   │ ──► Acts as Senior Peer Reviewer
- │   (Architectural Critique)│     Stress-tests logic & design patterns
+ │  Isolated Chat Platform   │ ──► Acts as Independent Senior Peer Reviewer
+ │   (Architectural Critique)│     Stress-tests logic and exposes hidden edge cases
  └───────────────────────────┘
                │
                ▼ (Refined & Approved Plan)
  ┌───────────────────────────┐
- │   Local Context-Aware     │ ──► Native code scaffolding inside
- │       Scaffolding         │     atomic modules (`src/modules/`)
+ │   Local Compile-Time      │ ──► Custom ESLint v9 AST Firewalls (Rules 1-9)
+ │     AST Guardrails        │     mechanically enforce zero-trust data isolation
  └───────────────────────────┘
 ```
 
