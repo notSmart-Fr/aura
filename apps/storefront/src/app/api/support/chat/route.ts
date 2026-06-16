@@ -39,6 +39,18 @@ export async function POST(request: Request) {
   try {
     const { messages } = await request.json()
 
+    // Safe sliding-window message context pruning: Keep last 10 messages max.
+    // Ensure the slice starts with a 'user' message to avoid breaking assistant-tool turn pairs.
+    const maxHistory = 10
+    let prunedMessages = messages
+    if (messages.length > maxHistory) {
+      let startIndex = messages.length - maxHistory
+      while (startIndex < messages.length && messages[startIndex].role !== "user") {
+        startIndex++
+      }
+      prunedMessages = messages.slice(startIndex)
+    }
+
     // Dynamic schema validation & self-healing/self-seeding routine
     const dbPool = getDbPool()
     await ensureThumbnailColumn(dbPool)
@@ -109,7 +121,7 @@ ${personalizationLayer}
 ## B. Tool-use Coordination
 - When the customer expresses clear intent to view inventory or modify their active shopping bag, call the appropriate tool instantly.
 - Do not verbally promise actions that require tool confirmation until you receive the verified execution payload back from the tool invocation hook.`,
-          messages,
+          messages: prunedMessages,
           tools: {
             searchCatalog: {
               description: "Query the product catalog using vector semantic search to find available clothing items. Optionally filter by maxPrice.",
