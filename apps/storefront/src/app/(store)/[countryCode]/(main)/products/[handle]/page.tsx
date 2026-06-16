@@ -7,7 +7,7 @@ import { HttpTypes } from "@medusajs/types"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
-  searchParams: Promise<{ v_id?: string }>
+  searchParams: Promise<{ v_id?: string; color?: string; [key: string]: string | undefined }>
 }
 
 export async function generateStaticParams() {
@@ -54,19 +54,75 @@ export async function generateStaticParams() {
 
 function getImagesForVariant(
   product: HttpTypes.StoreProduct,
-  selectedVariantId?: string
+  selectedVariantId?: string,
+  selectedColor?: string
 ) {
+  if (selectedColor) {
+    const lowerColor = selectedColor.toLowerCase()
+    const filtered = product.images?.filter((image) => {
+      if (!image.url) return false
+      return image.url.toLowerCase().includes(lowerColor)
+    })
+    if (filtered && filtered.length > 0) {
+      return filtered
+    }
+  }
+
   if (!selectedVariantId || !product.variants) {
     return product.images
   }
 
   const variant = product.variants!.find((v) => v.id === selectedVariantId)
-  if (!variant || !variant.images?.length) {
+  if (!variant) {
     return product.images
   }
 
-  const imageIdsMap = new Map(variant.images!.map((i) => [i.id, true]))
-  return product.images?.filter((i) => imageIdsMap.has(i.id)) ?? null
+  if (variant.images?.length) {
+    const imageIdsMap = new Map(variant.images!.map((i) => [i.id, true]))
+    return product.images?.filter((i) => imageIdsMap.has(i.id)) ?? null
+  }
+
+  // Fallback color-based matching
+  const optionValues: string[] = []
+  if (Array.isArray(variant.options)) {
+    variant.options.forEach((vo: any) => {
+      if (vo && typeof vo.value === "string") {
+        optionValues.push(vo.value.toLowerCase())
+      }
+    })
+  } else if (variant.options && typeof variant.options === "object") {
+    Object.values(variant.options).forEach((val) => {
+      if (typeof val === "string") {
+        optionValues.push(val.toLowerCase())
+      }
+    })
+  }
+
+  const colorOption = product.options?.find(
+    (o) => o.title?.toLowerCase() === "color"
+  )
+
+  if (colorOption) {
+    const selectedColor = optionValues.find((val) => {
+      return colorOption.values?.some((cov: any) => {
+        const covVal = (typeof cov === "string" ? cov : cov.value)?.toLowerCase()
+        return covVal === val
+      })
+    })
+
+    if (selectedColor) {
+      const filtered = product.images?.filter((image) => {
+        if (!image.url) return false
+        const urlLower = image.url.toLowerCase()
+        return urlLower.includes(selectedColor)
+      })
+      if (filtered && filtered.length > 0) {
+        return filtered
+      }
+    }
+  }
+
+  return product.images
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -104,6 +160,7 @@ export default async function ProductPage(props: Props) {
   const searchParams = await props.searchParams
 
   const selectedVariantId = searchParams.v_id
+  const selectedColor = searchParams.color
 
   if (!region) {
     notFound()
@@ -114,7 +171,7 @@ export default async function ProductPage(props: Props) {
     queryParams: { handle: params.handle },
   }).then(({ response }) => response.products[0])
 
-  const images = getImagesForVariant(pricedProduct, selectedVariantId)
+  const images = getImagesForVariant(pricedProduct, selectedVariantId, selectedColor)
 
   if (!pricedProduct) {
     notFound()

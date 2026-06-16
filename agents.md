@@ -84,6 +84,11 @@ When implementing visual elements or rendering catalog query results inside tran
 - Product thumbnail displays must use the Next.js `<Image />` component with `fill` positioning inside a relative, zero-border-radius (`rounded-none`) wrapper container.
 - Hover animations must respect the 100% garment color accuracy rule, using minimalist border/background changes or image scale transitions (`group-hover:scale-105`) while avoiding all desaturating or color-shifting CSS filters.
 
+### Rule F: Vercel AI SDK Version 6 Usage
+
+- We are explicitly using **Vercel AI SDK version 6** (with packages like `ai` version `6.x` and `@ai-sdk/react`).
+- If you do not have native training or context knowledge about the specific APIs, schemas, or behaviors of Vercel AI SDK version 6, you must refer directly to its official documentation or verify the code compatibility. Do not assume older v3/v4 behaviors.
+
 ---
 
 ## 4. VERIFICATION CHECKLIST FOR CODE GENERATION
@@ -194,4 +199,5 @@ To prevent developers and coding agents from accidentally introducing architectu
 
 - **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If any violation is caught, agents must immediately refactor their code to comply with these rules.
 - **AST Modification Constraint:** Coding agents are strictly prohibited from modifying `eslint.config.mjs` or any ESLint configuration files in the workspace unless the user explicitly requests a rule modification or creation.
+- **ESLint Bypass Constraint:** Coding agents are strictly prohibited from using `eslint-disable` comments or lint directives (e.g., `// eslint-disable-next-line`, `/* eslint-disable */`) to bypass ESLint rule validations and architectural security guardrails. All code must comply with configured ESLint checks natively.
 - **Terminal Execution Constraint:** Coding agents must never execute terminal or shell commands on the system.

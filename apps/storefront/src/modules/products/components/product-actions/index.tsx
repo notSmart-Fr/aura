@@ -75,13 +75,39 @@ export default function ProductActions({
     })
   }, [product.variants, options])
 
+  // Initialize options from URL query params on load
+  useEffect(() => {
+    const initialOptions: Record<string, string> = {}
+    product.options?.forEach((option) => {
+      const optionTitle = option.title?.toLowerCase()
+      if (optionTitle) {
+        const paramVal = searchParams.get(optionTitle)
+        if (paramVal) {
+          initialOptions[option.id] = paramVal
+        }
+      }
+    })
+    if (Object.keys(initialOptions).length > 0) {
+      setOptions((prev) => ({ ...prev, ...initialOptions }))
+    }
+  }, [product.options, searchParams])
+
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
-    const value = isValidVariant ? selectedVariant?.id : null
+    
+    // Sync option selections to URL params
+    Object.entries(options).forEach(([key, val]) => {
+      const optionTitle = product.options?.find((o) => o.id === key)?.title?.toLowerCase()
+      if (optionTitle) {
+        if (val) {
+          params.set(optionTitle, val)
+        } else {
+          params.delete(optionTitle)
+        }
+      }
+    })
 
-    if (params.get("v_id") === value) {
-      return
-    }
+    const value = isValidVariant ? selectedVariant?.id : null
 
     if (value) {
       params.set("v_id", value)
@@ -89,8 +115,8 @@ export default function ProductActions({
       params.delete("v_id")
     }
 
-    router.replace(pathname + "?" + params.toString())
-  }, [selectedVariant, isValidVariant])
+    router.replace(pathname + "?" + params.toString(), { scroll: false })
+  }, [selectedVariant, isValidVariant, options, pathname, router, searchParams, product.options])
 
   // check if the selected variant is in stock
   const inStock = useMemo(() => {

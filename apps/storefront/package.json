@@ -16,6 +16,11 @@
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^2.0.38",
+    "@ai-sdk/google": "^3.0.82",
+    "@ai-sdk/openai": "^3.0.71",
+    "@ai-sdk/provider-utils": "^4.0.29",
+    "@ai-sdk/react": "^3.0.208",
     "@headlessui/react": "^2.2.0",
     "@medusajs/icons": "2.15.5",
     "@medusajs/js-sdk": "2.15.5",
@@ -23,11 +28,10 @@
     "@payloadcms/db-postgres": "^3.85.1",
     "@payloadcms/next": "^3.85.1",
     "@payloadcms/richtext-lexical": "^3.85.1",
-    "@ai-sdk/google": "^1.1.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@stripe/react-stripe-js": "^5.3.0",
     "@stripe/stripe-js": "^8.2.0",
-    "ai": "^4.1.0",
+    "ai": "6.0.206",
     "clsx": "^2.1.1",
     "graphql": "^16.14.2",
     "lodash": "^4.17.21",
@@ -39,7 +43,8 @@
     "react-country-flag": "^3.1.0",
     "react-dom": "19.0.5",
     "server-only": "^0.0.1",
-    "tailwindcss-radix": "^2.8.0"
+    "tailwindcss-radix": "^2.8.0",
+    "zod": "4.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.5",

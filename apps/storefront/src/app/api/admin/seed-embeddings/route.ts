@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   try {
     // 2. Fetch the complete list of products currently inside default boilerplate catalog
     const response = await sdk.client.fetch<{ products: HttpTypes.StoreProduct[] }>("/store/products", {
-      query: { limit: 100 }
+      query: { limit: 100, fields: "id,title,handle,description,thumbnail,tags,options,options.values" }
     })
     const products: HttpTypes.StoreProduct[] = response.products || []
 

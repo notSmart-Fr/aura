@@ -2,6 +2,8 @@ import { generateEmbedding, getDbPool } from "@lib/embeddings"
 import { NextResponse } from "next/server"
 import { google } from "@ai-sdk/google"
 import { generateObject, jsonSchema } from "ai"
+import { searchCache } from "@lib/cache"
+import { deepseekGenerateObject } from "@lib/deepseek"
 
 export async function POST(request: Request) {
   // Define idempotency to satisfy the AST rule checker if any DB call gets analyzed
@@ -26,6 +28,17 @@ export async function POST(request: Request) {
       )
     }
 
+    const normalizedQuery = query.trim().toLowerCase()
+    const cacheKey = `search:${normalizedQuery}`
+    const cachedData = searchCache.get(cacheKey)
+
+    if (cachedData) {
+      console.log(`[Cache Hit] Serving main search results for key: "${cacheKey}"`)
+      return NextResponse.json(cachedData)
+    }
+
+    console.log(`[Cache Miss] Querying main search database and LLM for key: "${cacheKey}"`)
+
     // 2. Invoke our embedding service to generate the 1536-dimensional float vector array
     const queryVector = await generateEmbedding(query.trim())
     const queryVectorString = `[${queryVector.join(",")}]`
@@ -43,7 +56,7 @@ export async function POST(request: Request) {
 
     const rawRows = result.rows || []
 
-    // Rerank candidates using gemini-2.5-flash with structured JSON output
+    // Rerank candidates using DeepSeek with structured JSON output
     let finalRows = []
     let fuzzyFallback = false
 
@@ -55,20 +68,16 @@ export async function POST(request: Request) {
       }))
 
       try {
-        const { object } = await generateObject({
-          model: google("gemini-2.5-flash"),
-          schema: jsonSchema<{ matchingProductIds: string[] }>({
-            type: "object",
-            properties: {
-              matchingProductIds: {
-                type: "array",
-                items: { type: "string" },
-                description: "List of product IDs that match the search query strictly."
-              }
-            },
-            required: ["matchingProductIds"]
-          }),
-          prompt: `User Query: "${query.trim()}"
+        let objAttempts = 0
+        const maxObjAttempts = 5
+        let objDelay = 2000
+        let rerankObject: { matchingProductIds: string[] } | undefined = undefined
+
+        while (objAttempts < maxObjAttempts) {
+          try {
+            const { object } = await deepseekGenerateObject<{ matchingProductIds: string[] }>({
+              schemaDescription: "An object with a matchingProductIds property which is an array of strings representing product IDs.",
+              prompt: `User Query: "${query.trim()}"
 
 Candidate Products:
 ${candidatesForModel.map(c => `- ID: ${c.product_id}\n  Title: ${c.title}\n  Description: ${c.description}`).join("\n")}
@@ -77,10 +86,20 @@ Instructions:
 Perform a binary evaluation (keep or discard) on each candidate product based strictly on the User Query.
 If the query explicitly asks for a specific category or modifier (e.g. "shirt"), discard items of other categories (e.g. discard "shorts", "sweatshirts", "pants", "jackets").
 Only keep products that strictly match the query.
-Return the matching product IDs in the JSON schema format.`
-        })
+Return the matching product IDs in the JSON format: {"matchingProductIds": ["id1", "id2"]}`
+            })
+            rerankObject = object
+            break
+          } catch (err: any) {
+            objAttempts++
+            if (objAttempts >= maxObjAttempts) throw err
+            console.warn(`Reranking generateObject failed (attempt ${objAttempts}/${maxObjAttempts}), retrying in ${objDelay}ms...`)
+            await new Promise((resolve) => setTimeout(resolve, objDelay))
+            objDelay *= 2
+          }
+        }
 
-        const matchingIds = new Set(object?.matchingProductIds || [])
+        const matchingIds = new Set(rerankObject?.matchingProductIds || [])
         finalRows = rawRows.filter((row: any) => matchingIds.has(row.product_id))
       } catch (rerankError) {
         console.error("Reranking failed in search route, falling back to database search:", rerankError)
@@ -101,6 +120,9 @@ Return the matching product IDs in the JSON schema format.`
       distance: Number(row.distance),
       fuzzyFallback
     }))
+
+    // Save results to cache
+    searchCache.set(cacheKey, products)
 
     return NextResponse.json(products)
   } catch (error: any) {

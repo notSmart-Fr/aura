@@ -4,7 +4,7 @@ import { retrieveCart, addToCart, deleteLineItem } from "@lib/data/cart"
 
 export async function POST(request: Request) {
   try {
-    const { handle, action, quantity, countryCode } = await request.json()
+    const { handle, action, quantity, countryCode, size, color } = await request.json()
 
     if (!handle || !action || !countryCode) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 })
@@ -22,7 +22,44 @@ export async function POST(request: Request) {
     }
 
     if (action === "ADD") {
-      const variantId = product.variants?.[0]?.id
+      let variant = product.variants?.[0]
+      if (size || color) {
+        const sizeOption = product.options?.find(o => o.title?.toLowerCase() === "size")
+        const colorOption = product.options?.find(o => o.title?.toLowerCase() === "color")
+
+        const foundVariant = product.variants?.find((v) => {
+          // Attempt direct title match first
+          const vTitle = (v.title || "").toLowerCase()
+          const sizeInTitle = !size || vTitle.includes(size.toLowerCase())
+          const colorInTitle = !color || vTitle.includes(color.toLowerCase())
+          if (sizeInTitle && colorInTitle) {
+            return true
+          }
+
+          // Fall back to exact option value verification
+          let sizeMatch = !size
+          let colorMatch = !color
+
+          if (size && sizeOption) {
+            const optVal = v.options?.find(o => o.option_id === sizeOption.id)
+            if (optVal?.value?.toLowerCase() === size.toLowerCase()) {
+              sizeMatch = true
+            }
+          }
+          if (color && colorOption) {
+            const optVal = v.options?.find(o => o.option_id === colorOption.id)
+            if (optVal?.value?.toLowerCase() === color.toLowerCase()) {
+              colorMatch = true
+            }
+          }
+
+          return sizeMatch && colorMatch
+        })
+        if (foundVariant) {
+          variant = foundVariant
+        }
+      }
+      const variantId = variant?.id
       if (!variantId) {
         return NextResponse.json({ error: "Product variant not found" }, { status: 404 })
       }
@@ -31,7 +68,9 @@ export async function POST(request: Request) {
         quantity: quantity || 1,
         countryCode,
       })
-      return NextResponse.json({ success: true, message: `Added ${product.title} to cart.` })
+      const sizeText = size ? ` (Size ${size})` : ""
+      const colorText = color ? ` in ${color}` : ""
+      return NextResponse.json({ success: true, message: `Added ${product.title}${colorText}${sizeText} to cart.` })
     } else if (action === "REMOVE") {
       const cart = await retrieveCart()
       if (!cart || !cart.items) {

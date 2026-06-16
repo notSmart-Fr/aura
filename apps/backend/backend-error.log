@@ -1,5 +1,0 @@
-{
-  "message": "authServiceLocal.generateJwtToken is not a function",
-  "stack": "TypeError: authServiceLocal.generateJwtToken is not a function\n    at POST (I:\\aura\\apps\\backend\\src\\api\\auth\\customer\\token\\route.ts:107:42)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async POST (I:\\aura\\node_modules\\.pnpm\\@medusajs+framework@2.15.5__48a6fe8dd9c9fde76c998044f4d5e0e8\\node_modules\\@medusajs\\framework\\src\\http\\utils\\wrap-handler.ts:27:14)",
-  "timestamp": "2026-06-14T14:17:18.335Z"
-}

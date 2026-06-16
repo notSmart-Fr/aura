@@ -19,6 +19,9 @@ const LocalizedClientLink = ({
   replace,
   scroll,
   prefetch,
+  title,
+  "data-testid": dataTestId,
+  "aria-label": ariaLabel,
 }: {
   children?: React.ReactNode
   href: string
@@ -30,6 +33,9 @@ const LocalizedClientLink = ({
   replace?: boolean
   scroll?: boolean
   prefetch?: boolean
+  title?: string
+  "data-testid"?: string
+  "aria-label"?: string
 }) => {
   const { countryCode } = useParams()
 
@@ -44,6 +50,9 @@ const LocalizedClientLink = ({
       replace={replace}
       scroll={scroll}
       prefetch={prefetch}
+      title={title}
+      data-testid={dataTestId}
+      aria-label={ariaLabel}
     >
       {children}
     </Link>

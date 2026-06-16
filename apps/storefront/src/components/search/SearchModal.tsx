@@ -67,6 +67,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       return
     }
 
+    const controller = new AbortController()
+
     const fetchResults = async () => {
       setLoading(true)
       setError(null)
@@ -77,6 +79,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ query: debouncedQuery }),
+          signal: controller.signal,
         })
 
         if (!response.ok) {
@@ -87,14 +90,23 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         const data = await response.json()
         setResults(data)
       } catch (err: any) {
+        if (err.name === "AbortError") {
+          return
+        }
         setError(err.message || "An error occurred while searching")
         setResults([])
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchResults()
+
+    return () => {
+      controller.abort()
+    }
   }, [debouncedQuery])
 
   if (!isOpen) return null

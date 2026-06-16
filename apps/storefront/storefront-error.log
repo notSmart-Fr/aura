@@ -1,5 +1,0 @@
-{
-  "status": 500,
-  "body": "{\"error\":\"authServiceLocal.generateJwtToken is not a function\"}",
-  "timestamp": "2026-06-14T14:17:18.338Z"
-}

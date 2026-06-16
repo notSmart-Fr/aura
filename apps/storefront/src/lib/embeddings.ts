@@ -35,11 +35,26 @@ export function getDbPool(): Pool {
  * Uses an external embedding model API (like OpenAI text-embedding-3-small).
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const { embedding } = await embed({
-    model: google.embedding("gemini-embedding-2"),
-    value: text,
-  });
-  return embedding.slice(0, 1536);
+  let attempts = 0;
+  const maxAttempts = 5;
+  let delay = 2000;
+
+  while (attempts < maxAttempts) {
+    try {
+      const { embedding } = await embed({
+        model: google.embedding("gemini-embedding-2"),
+        value: text,
+      });
+      return embedding.slice(0, 1536);
+    } catch (error: any) {
+      attempts++;
+      if (attempts >= maxAttempts) throw error;
+      console.warn(`Embedding failed (attempt ${attempts}/${maxAttempts}), retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
+  throw new Error("Failed to generate embedding after retries");
 }
 
 
@@ -55,7 +70,21 @@ export function generateProductDescription(product: any): string {
     ? product.tags.map((t: any) => t.value || t.name || t).join(", ")
     : "";
   
-  return `Title: ${title}\nHandle: ${handle}\nDescription: ${description}\nTags: ${tags}`.trim();
+  const optionValues: string[] = []
+  if (Array.isArray(product.options)) {
+    product.options.forEach((opt: any) => {
+      if (opt && opt.values && Array.isArray(opt.values)) {
+        opt.values.forEach((v: any) => {
+          const val = typeof v === "string" ? v : v.value
+          if (val) optionValues.push(val)
+        })
+      }
+    })
+  }
+
+  const optionsText = optionValues.length > 0 ? `Options: ${optionValues.join(", ")}` : ""
+  
+  return `Title: ${title}\nHandle: ${handle}\nDescription: ${description}\nTags: ${tags}\n${optionsText}`.trim();
 }
 
 let columnEnsured = false;
@@ -79,9 +108,12 @@ export async function upsertProductEmbedding(
   productId: string,
   text: string
 ): Promise<void> {
-  // 1. Fetch the product details from Medusa to get required fields (handle, title)
+  // 1. Fetch the product details from Medusa with options and values
   const response = await sdk.client.fetch<{ product: HttpTypes.StoreProduct }>(
-    `/store/products/${productId}`
+    `/store/products/${productId}`,
+    {
+      query: { fields: "id,title,handle,description,thumbnail,tags,options,options.values" }
+    }
   );
   
   const product = response?.product;
@@ -89,8 +121,12 @@ export async function upsertProductEmbedding(
     throw new Error(`Product not found in Medusa: ${productId}`);
   }
 
+  // Regenerate description to ensure options are always included
+  const finalDescription = generateProductDescription(product);
+  console.log(`[Embedding Service] finalDescription for product ${productId}:`, finalDescription)
+
   // 2. Call our AI embedding model provider
-  const vector = await generateEmbedding(text);
+  const vector = await generateEmbedding(finalDescription);
   const embeddingString = `[${vector.join(",")}]`;
 
   // 3. Write/update inside the product_embeddings PostgreSQL table
@@ -112,7 +148,7 @@ export async function upsertProductEmbedding(
       productId,
       product.handle || "",
       product.title || "",
-      product.description || "",
+      finalDescription,
       product.thumbnail || "",
       embeddingString
     ]
