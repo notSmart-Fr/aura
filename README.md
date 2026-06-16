@@ -1,363 +1,142 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="https://www.medusajs.com">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/59018053/229103275-b5e482bb-4601-46e6-8142-244f531cebdb.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    <img alt="Medusa logo" src="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    </picture>
-  </a>
+  <img alt="Aura Logo" src="https://user-images.githubusercontent.com/59018053/229103275-b5e482bb-4601-46e6-8142-244f531cebdb.svg" width="120" />
 </p>
-<h1 align="center">
-  Medusa DTC Starter
-</h1>
 
-<h4 align="center">
-  <a href="https://docs.medusajs.com">Documentation</a> |
-  <a href="https://www.medusajs.com">Website</a>
-</h4>
+<h1 align="center">Aura E-Commerce Storefront</h1>
 
 <p align="center">
-  Building blocks for digital commerce
+  <strong>An Advanced Luxury Apparel Monorepo Extension</strong><br />
+  Built on top of the official <strong>Medusa DTC Starter</strong>, integrated with <strong>Payload CMS (v3)</strong> and <strong>Next.js (App Router)</strong>.
 </p>
+
 <p align="center">
-  <a href="https://github.com/medusajs/medusa/blob/develop/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Medusa is released under the MIT license." />
-  </a>
-  <a href="https://circleci.com/gh/medusajs/medusa">
-    <img src="https://circleci.com/gh/medusajs/medusa.svg?style=shield" alt="Current CircleCI build status." />
-  </a>
-  <a href="https://github.com/medusajs/medusa/blob/develop/CONTRIBUTING.md">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs welcome!" />
-  </a>
-    <a href="https://www.producthunt.com/posts/medusa"><img src="https://img.shields.io/badge/Product%20Hunt-%231%20Product%20of%20the%20Day-%23DA552E" alt="Product Hunt"></a>
-  <a href="https://discord.gg/xpCwq3Kfn8">
-    <img src="https://img.shields.io/badge/chat-on%20discord-7289DA.svg" alt="Discord Chat" />
-  </a>
-  <a href="https://twitter.com/intent/follow?screen_name=medusajs">
-    <img src="https://img.shields.io/twitter/follow/medusajs.svg?label=Follow%20@medusajs" alt="Follow @medusajs" />
-  </a>
+  <a href="#-the-aura-architecture-payload--medusa">Aura Architecture</a> •
+  <a href="#-custom-compile-time-ast-guardrails">AST Guardrails</a> •
+  <a href="#-ai--search-tier-pipeline">AI & Search Tier</a> •
+  <a href="#-medusa-core-features">Base Medusa Features</a> •
+  <a href="#-getting-started">Local Setup</a>
 </p>
 
-# Medusa DTC Starter
+---
 
-A production-ready monorepo starter for direct-to-consumer ecommerce stores powered by Medusa and Next.js. Includes a fully featured storefront with product browsing, cart, checkout, customer accounts, and order management.
+## 🎯 Project Overview
+**Aura** elevates the standard Medusa commerce template into a high-end, production-grade digital flagship store. By introducing a slot-based content management engine via Payload CMS and building deep AI-driven search and concierge layers, this repository demonstrates how to scale headless commerce while maintaining zero-trust code security.
 
-# Aura E-Commerce Storefront
+> 💡 **Repository Note:** This project is a heavily extended monorepo fork of the standard Medusa DTC Starter. The baseline commerce modules remain intact, while the presentation, content orchestration, and linting/security engines have been completely re-architected.
 
-This repository implements a high-end minimalist apparel storefront using Next.js (App Router), Medusa v2 (Headless Commerce), and Payload CMS (Co-located Content Engine).
+---
 
-## Deterministic Architectural Contract
+## 🏗️ The Aura Architecture: Payload + Medusa
 
-All frontend contributions and AI coding agents must adhere to the rules outlined in [agent.md](file:///i:/Easytech/agent.md) (or [agents.md](file:///i:/Easytech/agents.md) / [AGENTS.md](file:///i:/Easytech/AGENTS.md)), workspace rules in [.agents/rules/deterministic_contract.md](file:///i:/Easytech/.agents/rules/deterministic_contract.md), and the agent/developer guidelines below.
-
-### 1. Visual Restraints & Styling Tokens
-
-- **Aesthetic:** Minimalist, luxury typography and layouts (e.g., Hugo Boss style).
-- **Color Palette:** White/Off-white backgrounds (`bg-white`, `bg-zinc-50`), sharp dark charcoal/slate/black headers (`text-zinc-900`, `text-slate-900`). No neon colors, heavy borders, or glowing gradients.
-- **Borders:** Strict minimal borders (`border-zinc-200`) and sharp corners (`rounded-none` or `rounded-sm` max).
-- **Aspect Ratios:** Apparel imagery containers must use fixed aspect ratios (`aspect-[3/4]` or `aspect-square`) with a fallback neutral loading state (`bg-zinc-100`).
-
-### 2. File Management & Locality
-
-Keep all layout components, templates, and micro UI atomic leaf nodes localized inside their boundary lanes in `src/modules/`. Do not leak routing orchestration parameters or rendering markup inappropriately.
-
-Refer to [agent.md](file:///i:/Easytech/agent.md) for the locked directory structures.
-
-### 3. Core Integration Rules
-
-- **Rule A (Separation of Data):** Fetch transactional product parameters via the official Medusa JS SDK and content layouts using Payload CMS.
-- **Rule B (Strict Type Contracts):** Consume official types exported by `@medusajs/types` or `HttpTypes.StoreProduct`. Do not use `any`.
-- **Rule C (Context Containment):** Work locally within atomic leaf folders when editing components. Do not modify parent configurations.
-- **Rule D (Data State Mutability):** Do not write custom `fetch()` or Axios setups for commerce endpoints; rely on the global SDK handler.
-
-### 4. Compile-Time AST Guardrails
-
-This workspace enforces automated AST-based firewalls on commit and lint stages to ensure strict security and decoupling contracts:
-
-- **Rule 1 (Decoupled Commerce):** Next.js components must never import direct Medusa database handlers. All queries/mutations must flow through the Medusa service API client wrapper.
-- **Rule 2 (Access Control Gate):** Payload CMS access control rules cannot be set directly to `true`. They must verify authenticated sessions or user identity.
-- **Rule 3 (Secure Server Actions):** Files using `'use server'` that perform database mutations must explicitly reference a `session`, `auth`, or `user` variable.
-- **Rule 4 (Idempotent Webhooks):** Webhook `POST` endpoints executing mutations must reference an `idempotency`, `signature`, `eventId`, or `nonce` variable to guard against race conditions and event replays.
-- **Rule 5 (Concurrency Gate):** Restricts the use of open array mappings inside `Promise.all` in files handling embeddings, preventing API rate limit exhaustion.
-- **Rule 6 (Debounced Input Gate):** Prevents direct binding of raw `onChange` listeners to `<input>` fields without debouncing, Controlled state, or a value attribute, avoiding search query floods.
-- **Rule 7 (Context Drift Firewall):** Ensures any endpoint invoking `streamText` passes the output through the `validateAndFilterOutput` sanitization filter to mitigate refund/context drift exploits.
-- **Rule 8 (Context Exposure Gate):** Blocks files utilizing Gemini AI primitives from directly accessing `process.env`. Configuration values must be routed through a secure, isolated config module.
-- **Rule 9 (Memory Window Overhead Guard):** Restricts passing un-pruned database identifiers (like `id`, `_id`, `product_id`) directly into tracking or telemetry functions (`track`, `logContext`, `trackEvent`). Data must be explicitly pruned or mapped beforehand.
-
-## Features
-
-- All of [Medusa's commerce features](https://docs.medusajs.com/resources/commerce-modules)
-- Multi-region support with automatic country detection
-- Product catalog with variant selection
-- Cart with promotion codes
-- Multi-step checkout with shipping and payment
-- Customer accounts with order history and address management
-- Order transfer between accounts
-
-### Semantic Searching Feature
-
-Our storefront implements AI-powered semantic search that allows users to find products using natural language queries, supported by real-time catalog syncing and a robust AST compiler firewall.
+To move away from rigid, hardcoded frontend pages, this project introduces a **Slot-Based Component Registry**.
 
 ```text
-                  ┌─────────────────────────────────────────┐
-                  │   ESLint v9 AST Compile-Time Firewall   │
-                  └─────────────────────────────────────────┘
-        Rule 1: Commerce Decoupling | Rule 2: CMS Access Gate
-        Rule 3: Tenant Isolation    | Rule 4: Idempotent Webhooks
-        Rule 5: AI Inference Concurrency Gate
-                                       │
-                                       ▼
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │                      AUTOMATED INGESTION ENGINE                        │
-  └────────────────────────────────────────────────────────────────────────┘
-    [Medusa/Payload Mutations] ──► [Idempotent Webhook Route Handler]
-                                                   │
-                                                   ▼
-                                        [Throttled Batch Engine]
-                                                   │
-                                                   ▼
-                                      [Gemini Embedding 2 API]
-                                                   │
-                                                   ▼
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │                         DATA & RETRIEVAL TIER                          │
-  └────────────────────────────────────────────────────────────────────────┘
-                                    [Neon PostgreSQL]
-                             (pgvector + HNSW Graph Index)
-                                       ▲       │
-                       Query Vector    │       │  Matched Products (ms)
-                      (<=> Cosine Dist)│       ▼
-                               [Public Search API Endpoint]
+       [ Next.js App Router Storefront ]
+                      │
+        ┌─────────────┴─────────────┐
+        ▼                           ▼
+[ Medusa v2 API ]          [ Payload CMS v3 ]
+(Commerce Modules Engine)  (Dynamic Slot Layout Blocks)
+  - Cart & Checkout          - Hero Block (`hero`)
+  - Regions & Tax Rates      - Product Grid (`productGrid`)
+  - Order Lifecycles         - Manifesto (`manifesto`)
+
 ```
 
-#### Ingested Model Specifications
-
-- **Model:** `gemini-embedding-2`
-- **Output Dimensions:** Truncated/sliced to `1,536` dimensions (leveraging Matryoshka Representation Learning) to stay within PostgreSQL's HNSW graph index limits (< 2,000 dimensions).
-- **Index Type:** HNSW (Hierarchical Navigable Small World) with Cosine distance metric.
-
-### AI Visual Concierge (Support Chat Agent)
-
-The customer support agent is equipped with a Visual Concierge capability that integrates natural language understanding with the catalog database:
-
-- **Intelligent Search Routing**: Invokes the `searchCatalog` database tool to retrieve semantic search recommendations.
-- **Rich Interactive Cards**: Renders matching catalog records using Next.js `<Image />` components inside zero-border-radius (`rounded-none`) wrappers.
-- **Direct Buy Links**: Wraps product cards in standard localized HTML anchor (`<a>`) elements to enable instant navigation to purchase paths.
-- **Garment Color Preservation**: Complies with luxury storefront restraints by using color-preserving hover animations (e.g. scale transformations) and avoiding all desaturating or color-filtering CSS parameters.
-
-## Getting Started
-
-### Deploy with Medusa Cloud
-
-The fastest way to get started is deploying with [Medusa Cloud](https://cloud.medusajs.com):
-
-1. [Create a Medusa Cloud account](https://cloud.medusajs.com)
-2. Deploy this starter directly from your dashboard
-
-### Local Installation
-
-> **Prerequisites:
->
-> - [Node.js](https://nodejs.org/) v20+
-> - [PostgreSQL](https://www.postgresql.org/) v15+
-> - [pnpm](https://pnpm.io/) v10+
-
-1. Clone the repository and install dependencies:
-
-```bash
-git clone https://github.com/medusajs/dtc-starter.git
-cd dtc-starter
-pnpm install
-```
-
-1. Set up environment variables for the backend:
-
-```bash
-cp apps/backend/.env.template apps/backend/.env
-```
-
-1. Set the database URL in `apps/backend.env`:
-
-```bash
-# Replace with actual database URL, make sure the database exists.
-DATABASE_URL=postgres://postgres:@localhost:5432/medusa-dtc-starter
-```
-
-1. Run migrations:
-
-```bash
-cd apps/backend
-pnpm medusa db:migrate
-```
-
-1. Add admin user:
-
-```bash
-cd apps/backend
-pnpm medusa user -e admin@test.com -p supersecret
-```
-
-1. Start Medusa backend:
-
-```bash
-cd apps/backend
-pnpm dev
-```
-
-1. Open the admin dashboard at `localhost:9000/app` and log in. Retrieve your publishable API key at Settings > Publishable API key.
-
-2. Set up environment variables for the storefront:
-
-```bash
-cp apps/storefront/.env.template apps/storefront/.env.local
-```
-
-1. Update `apps/storefront/.env.local` with your Medusa publishable API key:
-
-```bash
-NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_6c3...
-```
-
-1. Start storefront:
-
-```bash
-cd apps/storefront
-pnpm dev
-```
-
-The storefront runs on `http://localhost:8000`.
-You can also run the storefront and backend separately.
-
-#### 1. From the Root Directory (Recommended)
-
-- To run only the **Storefront**:
-
-  ```bash
-  pnpm storefront:dev
-  ```
-
-- To run only the **Backend**:
-
-  ```bash
-  pnpm backend:dev
-  ```
-
-#### 2. From the Respective Subdirectories
-
-- For the **Storefront**:
-
-  ```bash
-  cd apps/storefront
-  pnpm dev
-  ```
-
-- For the **Backend**:
-
-  ```bash
-  cd apps/backend
-  pnpm dev
-  ```
-
-Alternatively, you can run the following command from the root to start both the backend and storefront concurrently:
-
-```bash
-pnpm dev
-```
-
-## Slot-Based CMS Architecture
-
-To move away from rigid monolithic page layouts, the homepage has been refactored into a **slot-based composition architecture** powered by Payload CMS blocks.
-
-- **Orchestration Page:** The storefront renders the homepage dynamically by querying the `pages` collection for a document with the slug `home`.
-- **Component Registry:** The page layout maps incoming Payload blocks to isolated, modular React components:
-  - **Hero Block (`hero`)** &rarr; `src/components/blocks/HeroBlock.tsx`
-  - **Product Grid Block (`productGrid`)** &rarr; `src/components/blocks/ProductGridBlock.tsx` (populates copy from Payload and product lists dynamically from the Medusa SDK).
-  - **Manifesto Block (`manifesto`)** &rarr; `src/components/blocks/ManifestoBlock.tsx`
-  - **Asymmetrical Grid Block (`asymmetrical-grid`)** &rarr; `src/components/blocks/AsymmetricalGridBlock.tsx` (formerly the Teaser section).
+* **Dynamic Composition:** The homepage queries Payload's `pages` collection for the `home` slug, dynamically mapping layout blocks to isolated React leaf components inside `src/modules/`.
+* **Strict Separation of Data (Rule A):** Transactional data flows exclusively through the Medusa JS SDK, while editorial marketing content layout is served via Payload CMS, keeping mutations and presentations decoupled.
 
 ---
 
-## Modifying the Homepage via Payload CMS
+## 🛡️ Custom Compile-Time AST Guardrails
 
-Instead of editing isolated collections like `HeroBanners` or `Lookbooks`, all homepage blocks are managed centrally under the **Pages** collection:
+To prevent architectural drift and security vulnerabilities across a modular stack, this workspace enforces 9 custom AST-based ESLint v9 firewall rules:
 
-### 1. Locate the Homepage Document
-
-1. Log into your Payload CMS Admin dashboard (default: `http://localhost:8000/admin`).
-2. Navigate to **Pages** in the sidebar.
-3. Edit the existing page with the slug **`home`** (or create a new page and set the Title to `Home` and the Slug exactly to `home`).
-
-### 2. Compose the Layout (Drag and Drop Blocks)
-
-Under the **Layout** section of the `home` document:
-
-- **Add Blocks:** Click the **Add Layout** button to append new blocks (e.g. *Hero Block*, *Product Grid*, *Asymmetrical Grid*).
-- **Reorder Blocks:** Drag and drop blocks to rearrange the rendering sequence on the storefront.
-- **Delete Blocks:** Click the **Remove** (X) icon on any block card.
-- **Fill out Block Fields:**
-  - Ensure all required fields (like the *Image* inside a *Hero Block* or *imageUrl* and *targetHandle* in an *Asymmetrical Grid*) are completed before saving, or Payload will return validation errors (`400 Bad Request`).
-
-### 3. Save and Purge Cache
-
-- Click **Save** or **Publish** at the top right of the editor.
-
-- Refresh your storefront page (`http://localhost:8000/`) to view the changes instantly.
+* **Commerce Decoupling (Rule 1):** Prevents frontend components from directly importing backend Medusa handlers. All interactions must use the public service client wrapper.
+* **Context Drift Firewall (Rule 7):** Outbound AI text generation hooks invoking Gemini's `streamText` must pipe chunks through `validateAndFilterOutput` to mitigate injection exploits.
+* **Idempotent Webhooks (Rule 4):** Webhook endpoints capturing Medusa or Payload events must validate incoming headers against an explicit `idempotency`, `signature`, or `nonce` variable to guard against replay attacks.
+* **Memory Overhead Guard (Rule 9):** Blocks raw database keys (e.g., `_id`, `product_id`) from being passed directly into un-pruned telemetry log loops.
 
 ---
 
-## Architectural Notes (Local DB Synchronization)
+## 🔍 AI & Search Tier Pipeline
 
-In local development, Payload's automated `db push` is configured to `push: false` inside `payload.config.ts`. This prevents database startups from throwing drop-constraint transaction locks on PostgreSQL schemas. Legacy database tables (like `hero_banners` and `lookbooks`) are preserved but hidden (`hidden: true`) from the Admin Panel sidebar to avoid data loss.
+Aura implements a sub-second semantic search pipeline alongside an AI Visual Concierge.
 
-## Resources
+### 1. Vector Search Architecture
 
-- [Medusa Documentation](https://docs.medusajs.com)
-- [Medusa Cloud](https://cloud.medusajs.com)
+* **Embedding Layer:** `gemini-embedding-2` truncated to `1,536` dimensions using Matryoshka Representation Learning to optimize PostgreSQL's HNSW index constraints.
+* **Database Engine:** Neon PostgreSQL utilizing `pgvector` with Cosine distance indexing (`<=>`).
 
-Medusa Admin: [EMAIL_ADDRESS]
-Password: [PASSWORD ]
+### 2. AI Visual Concierge (Support Chat)
 
-Next.js Storefront: <http://localhost:8000>
-Medusa Admin: <http://localhost:9000/app>
+* **Dynamic Preprocessor:** Reads `x-user-role`, `x-session-id`, and `x-active-items` headers to cleanly map context to specific system prompt variations (Anonymous, Recognized Guest, or Logged-in Customer).
+* **Luxury Brand Restraints:** Implements aspect-locked (`aspect-[3/4]`), zero-border-radius (`rounded-none`) image containers with strict color-preserving scaling transitions to respect high-end visual aesthetics.
 
-## Administrative Entryways (Dashboard Shortcuts)
+---
 
-We have integrated convenient shortcuts to access the admin dashboards directly from the storefront:
+## 📦 Medusa Core Features (Baseline Engine)
 
-### 1. Payload CMS Admin Dashboard (`/admin`)
+Aura inherits and retains the complete headless engine provided by the upstream Medusa DTC Starter codebase:
 
-- **Global Keyboard Shortcut:** Press `Alt + Shift + A` (or `Ctrl + Shift + A`) on any storefront page to automatically open the Payload CMS Admin dashboard in a new tab.
-- **Dynamic Navigation Link:** When logged in as an admin (`user.role === 'admin'`), a `"✦ DASHBOARD"` text link is displayed on the right side of the navigation bar that opens the Payload CMS Admin dashboard in a new tab.
-- **Direct Link:** Directly accessible at `http://localhost:8000/admin`.
+* **Commerce Modules:** Multi-region scaling, automatic localized country/currency detection, and tax calculations.
+* **Checkout & Cart:** Advanced promotional code validation, multi-step secure shipping paths, and modular payment entryways.
+* **Customer Accounts:** Native address book management, persistent cart states, and historical order transfer tracking.
 
-### 2. Medusa Admin Dashboard (`/app` on Backend)
+---
 
-- **Global Keyboard Shortcut:** Press `Alt + Shift + M` (or `Ctrl + Shift + M`) on any storefront page to automatically open the Medusa Admin dashboard (`http://localhost:9000/app`) in a new tab.
-- **Direct Link:** Directly accessible at `http://localhost:9000/app`.## Troubleshooting: ESLint v9 Flat Config & Custom AST Firewall
+## 🚀 Getting Started
 
-During the implementation of the strict compile-time database firewall (guarding against Next.js components directly importing Medusa database handlers), the project was migrated from legacy `.eslintrc.json` to the modern ESLint v9 Flat Config format (`eslint.config.mjs`).
+### Prerequisites
 
-### Resolved Configuration Bottlenecks
+* Node.js v20+ | PostgreSQL v15+ | pnpm v10+
 
-1. **Next.js CLI Shim Wrapper Bug**
-   - **Problem:** Running `pnpm lint` or `pnpm --filter=@dtc/storefront lint` caused Next.js to parse the word `lint` as a target directory, throwing `Invalid project directory provided: .../storefront/lint`.
-   - **Solution:** Bypass the Next.js CLI wrapper by executing ESLint directly inside the storefront directory:
+### Quick Start Execution
 
-     ```bash
-     cd apps/storefront
-     npx eslint .
-     ```
+1. **Install Dependencies:**
 
-2. **ESLint v9 Legacy JSON Parser Crash**
-   - **Problem:** Direct execution of ESLint against the legacy `.eslintrc.json` file failed with:
-     `TypeError [ERR_IMPORT_ATTRIBUTE_MISSING]: Module ".../.eslintrc.json" needs an import attribute of "type: json"`
-   - **Solution:** Deleted/cleared `.eslintrc.json` and migrated all rules to the modern flat ES module format inside `eslint.config.mjs`.
+```bash
+   git clone https://github.com/your-username/aura-storefront.git
+   cd aura-storefront
+   pnpm install
+```
 
-3. **pnpm Strict Module Isolation (Missing `@eslint/eslintrc`)**
-   - **Problem:** Spreading `eslint-config-next` configurations directly in the flat config failed due to legacy CommonJS dependencies. Initializing `FlatCompat` to resolve them resulted in a `Cannot find package '@eslint/eslintrc'` crash because pnpm isolates nested workspace dependencies.
-   - **Solution:** Declared `@eslint/eslintrc` explicitly inside the storefront package's `devDependencies` (`apps/storefront/package.json`), then loaded the recommended Next.js rules through `FlatCompat` correctly.
+2. **Environment Synchronization:**
 
-4. **Linting Build Artifacts (`.next/` Caches)**
-   - **Problem:** By default, ESLint v9 flat config analyzed compiled server and chunk files inside `.next/`, throwing irrelevant errors.
-   - **Solution:** Declared a global `ignores` list (`.next/**`, `build/**`, etc.) at the very top of `eslint.config.mjs` to target source files only.
+```bash
+   cp apps/backend/.env.template apps/backend/.env
+   cp apps/storefront/.env.template apps/storefront/.env.local
+```
+
+*Configure your local database target URL strings inside `apps/backend/.env`.*
+
+3. **Database Setup & Local Seeding:**
+
+```bash
+   cd apps/backend
+   pnpm medusa db:migrate
+   pnpm medusa user -e admin@test.com -p supersecret
+```
+
+4. **Boot the Workspace Engine:**
+
+```bash
+   # From the root workspace directory
+   pnpm dev
+```
+
+* Storefront Endpoint: `http://localhost:8000`
+* Medusa Admin Endpoint: `http://localhost:9000/app`
+* Payload CMS Admin Endpoint: `http://localhost:8000/admin`
+
+---
+
+## 🛠️ Monorepo Troubleshooting
+
+### ESLint v9 Flat Config Configuration Workarounds
+
+During the addition of our AST firewalls, the workspace was migrated to `eslint.config.mjs` flat setups. Note these resolution steps if you encounter local build errors:
+
+* **Next.js CLI Target Error:** Avoid running the wrapper-level lint tasks which treat commands as target paths. Execute the direct binary check inside the directory using `cd apps/storefront && npx eslint .`.
+* **Strict Workspace Isolation:** Due to strict pnpm module caching, `@eslint/eslintrc` must be explicitly listed under local storefront `devDependencies` to allow legacy configs to bridge smoothly with the modern flat system.
