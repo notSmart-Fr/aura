@@ -31,10 +31,10 @@ export async function POST(request: Request) {
     // 3. Query pgvector table matching on Cosine Distance and sorting ASC to hit the HNSW index
     const dbPool = getDbPool()
     const result = await dbPool.query(
-      `SELECT product_id, handle, title, (embedding <=> $1::vector) AS distance
+      `SELECT product_id, handle, title, (embedding <=> $1::halfvec) AS distance
        FROM product_embeddings
-       WHERE (embedding <=> $1::vector) < 0.7
-       ORDER BY embedding <=> $1::vector ASC
+       WHERE (embedding <=> $1::halfvec) < 0.7
+       ORDER BY embedding <=> $1::halfvec ASC
        LIMIT 8`,
       [queryVectorString]
     )

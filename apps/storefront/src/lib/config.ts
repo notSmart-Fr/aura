@@ -37,3 +37,6 @@ sdk.client.fetch = async <T>(
   }
   return originalFetch(input, init)
 }
+
+export const PAYLOAD_DATABASE_URL = process.env.PAYLOAD_DATABASE_URL || ""
+

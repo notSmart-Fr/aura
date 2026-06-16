@@ -80,6 +80,10 @@ This workspace enforces automated AST-based firewalls on commit and lint stages 
 - **Rule 3 (Secure Server Actions):** Files using `'use server'` that perform database mutations must explicitly reference a `session`, `auth`, or `user` variable.
 - **Rule 4 (Idempotent Webhooks):** Webhook `POST` endpoints executing mutations must reference an `idempotency`, `signature`, `eventId`, or `nonce` variable to guard against race conditions and event replays.
 - **Rule 5 (Concurrency Gate):** Restricts the use of open array mappings inside `Promise.all` in files handling embeddings, preventing API rate limit exhaustion.
+- **Rule 6 (Debounced Input Gate):** Prevents direct binding of raw `onChange` listeners to `<input>` fields without debouncing, Controlled state, or a value attribute, avoiding search query floods.
+- **Rule 7 (Context Drift Firewall):** Ensures any endpoint invoking `streamText` passes the output through the `validateAndFilterOutput` sanitization filter to mitigate refund/context drift exploits.
+- **Rule 8 (Context Exposure Gate):** Blocks files utilizing Gemini AI primitives from directly accessing `process.env`. Configuration values must be routed through a secure, isolated config module.
+- **Rule 9 (Memory Window Overhead Guard):** Restricts passing un-pruned database identifiers (like `id`, `_id`, `product_id`) directly into tracking or telemetry functions (`track`, `logContext`, `trackEvent`). Data must be explicitly pruned or mapped beforehand.
 
 ## Features
 

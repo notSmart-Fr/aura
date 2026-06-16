@@ -147,4 +147,40 @@ To prevent developers and coding agents from accidentally introducing architectu
   "CallExpression[callee.object.name='Promise'][callee.property.name='all'] > ArrayExpression > CallExpression[callee.property.name='map']:has(Identifier[name=/embed/i])"
   ```
 
+### Rule 6: Debounced Input Gate
+
+- **The Constraint:** Prevents direct binding of raw `onChange` listeners to `<input>` fields without debouncing, Controlled state, or a value attribute, avoiding search query floods.
+- **AST Selector:**
+
+  ```json
+  "JSXOpeningElement[name.name='input']:has(JSXAttribute[name.name='onChange']):not(:has(JSXAttribute[name.name=/^(debounce|useDebounce|value)$/]))"
+  ```
+
+### Rule 7: Context Drift Firewall
+
+- **The Constraint:** Ensures any endpoint invoking `streamText` passes the output through the `validateAndFilterOutput` sanitization filter to mitigate refund/context drift exploits.
+- **AST Selector:**
+
+  ```json
+  "Program:has(CallExpression[callee.name='streamText']):not(:has(Identifier[name='validateAndFilterOutput']))"
+  ```
+
+### Rule 8: Context Exposure Gate
+
+- **The Constraint:** Blocks files utilizing Gemini AI primitives from directly accessing `process.env`. Configuration values must be routed through a secure, isolated config module.
+- **AST Selector:**
+
+  ```json
+  "Program:has(Identifier[name=/^(google|gemini)$/i]) MemberExpression[object.name='process'][property.name='env']"
+  ```
+
+### Rule 9: Memory Window Overhead Guard
+
+- **The Constraint:** Restricts passing un-pruned database identifiers (like `id`, `_id`, `product_id`) directly into tracking or telemetry functions (`track`, `logContext`, `trackEvent`). Data must be explicitly pruned or mapped beforehand.
+- **AST Selector:**
+
+  ```json
+  "CallExpression[callee.name=/^(track|logContext|trackContext|trackEvent)$/i] MemberExpression[property.name=/^(id|_id|product_id)$/i]"
+  ```
+
 - **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If any violation is caught, agents must immediately refactor their code to comply with these rules.

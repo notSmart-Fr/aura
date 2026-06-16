@@ -59,6 +59,14 @@ const eslintConfig = [
         {
           "selector": "Program:has(CallExpression[callee.name='streamText']):not(:has(Identifier[name='validateAndFilterOutput']))",
           "message": "CRITICAL SECURITY VIOLATION: Rule 7 Context Drift Firewall. Any route invoking streamText must pass the output through the validateAndFilterOutput sanitization filter to prevent refund/context drift exploits."
+        },
+        {
+          "selector": "Program:has(Identifier[name=/^(google|gemini)$/i]) MemberExpression[object.name='process'][property.name='env']",
+          "message": "CRITICAL SECURITY VIOLATION: Context Exposure Gate. Files utilizing Gemini primitives must not read directly from process.env. Retrieve configurations via a secure config layer."
+        },
+        {
+          "selector": "CallExpression[callee.name=/^(track|logContext|trackContext|trackEvent)$/i] MemberExpression[property.name=/^(id|_id|product_id)$/i]",
+          "message": "CRITICAL AI ENGINEERING VIOLATION: Memory Window Overhead Guard. Passing un-pruned database identifiers directly into context tracking methods is blocked. Prune or map identifiers before passing them."
         }
       ]
     }

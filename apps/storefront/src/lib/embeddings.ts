@@ -4,7 +4,7 @@
  * and performing cosine-similarity semantic vector queries.
  */
 
-import { sdk } from "./config";
+import { sdk, PAYLOAD_DATABASE_URL } from "./config";
 import { HttpTypes } from "@medusajs/types";
 import { Pool } from "pg";
 import { google } from "@ai-sdk/google";
@@ -24,7 +24,7 @@ let pool: Pool | null = null;
 export function getDbPool(): Pool {
   if (!pool) {
     pool = new Pool({
-      connectionString: process.env.PAYLOAD_DATABASE_URL,
+      connectionString: PAYLOAD_DATABASE_URL,
     });
   }
   return pool;
@@ -41,6 +41,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   });
   return embedding.slice(0, 1536);
 }
+
 
 /**
  * Combines a product's title, handle, description, and tags into a clean text block for the AI model to read.
@@ -97,7 +98,7 @@ export async function upsertProductEmbedding(
   await ensureThumbnailColumn(dbPool);
   await dbPool.query(
     `INSERT INTO product_embeddings (id, product_id, handle, title, description, thumbnail, embedding, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::vector, CURRENT_TIMESTAMP)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::halfvec, CURRENT_TIMESTAMP)
      ON CONFLICT (product_id) 
      DO UPDATE SET 
        handle = EXCLUDED.handle,
@@ -130,9 +131,9 @@ export async function querySemanticProducts(
   const dbPool = getDbPool();
 
   const result = await dbPool.query(
-    `SELECT product_id, handle, title, (1 - (embedding <=> $1::vector)) AS score
+    `SELECT product_id, handle, title, (1 - (embedding <=> $1::halfvec)) AS score
      FROM product_embeddings
-     ORDER BY embedding <=> $1::vector
+     ORDER BY embedding <=> $1::halfvec
      LIMIT $2`,
     [queryVectorString, limit]
   );
