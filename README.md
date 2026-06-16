@@ -1,9 +1,5 @@
 <!-- markdownlint-disable MD033 MD041 -->
-<p align="center">
-  <img alt="Aura Logo" src="https://user-images.githubusercontent.com/59018053/229103275-b5e482bb-4601-46e6-8142-244f531cebdb.svg" width="120" />
-</p>
-
-<h1 align="center">Aura E-Commerce Storefront</h1>
+<h1 align="center">✦ Aura E-Commerce Storefront</h1>
 
 <p align="center">
   <strong>An Advanced Luxury Apparel Monorepo Extension</strong><br />
@@ -22,7 +18,7 @@
 
 ## 🎯 Project Overview
 
-**Aura** elevates the standard Medusa commerce template into a high-end, production-grade digital flagship store. By introducing a slot-based content management engine via Payload CMS and building deep AI-driven search and concierge layers, this repository demonstrates how to scale headless commerce while maintaining zero-trust code security.
+**Aura** elevates the standard Medusa commerce template into a high-end, production-grade digital flagship store. The storefront is built using **Next.js (App Router)**, **React**, **TypeScript**, and **Tailwind CSS**, delivering a premium, type-safe, and highly responsive user interface with strict adherence to luxury design aesthetics. By introducing a slot-based content management engine via Payload CMS and building deep AI-driven search and concierge layers, this repository demonstrates how to scale headless commerce while maintaining zero-trust code security.
 
 > 💡 **Repository Note:** This project is a heavily extended monorepo fork of the standard Medusa DTC Starter. The baseline commerce modules remain intact, while the presentation, content orchestration, and linting/security engines have been completely re-architected.
 
@@ -30,18 +26,18 @@
 
 ## 🏗️ The Aura Architecture: Payload + Medusa
 
-To move away from rigid, hardcoded frontend pages, this project introduces a **Slot-Based Component Registry**.
+To move away from rigid, hardcoded frontend pages, this project introduces a **Slot-Based Component Registry** within a modern frontend stack of **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**.
 
 ```text
-       [ Next.js App Router Storefront ]
-                      │
-        ┌─────────────┴─────────────┐
-        ▼                           ▼
-[ Medusa v2 API ]          [ Payload CMS v3 ]
-(Commerce Modules Engine)  (Dynamic Slot Layout Blocks)
-  - Cart & Checkout          - Hero Block (`hero`)
-  - Regions & Tax Rates      - Product Grid (`productGrid`)
-  - Order Lifecycles         - Manifesto (`manifesto`)
+       [ Next.js App Router Storefront (React, TS, Tailwind) ]
+                                  │
+                    ┌─────────────┴─────────────┐
+                    ▼                           ▼
+            [ Medusa v2 API ]          [ Payload CMS v3 ]
+            (Commerce Modules Engine)  (Dynamic Slot Layout Blocks)
+              - Cart & Checkout          - Hero Block (`hero`)
+              - Regions & Tax Rates      - Product Grid (`productGrid`)
+              - Order Lifecycles         - Manifesto (`manifesto`)
 
 ```
 
@@ -54,10 +50,26 @@ To move away from rigid, hardcoded frontend pages, this project introduces a **S
 
 To prevent architectural drift and security vulnerabilities across a modular stack, this workspace enforces 9 custom AST-based ESLint v9 firewall rules:
 
-* **Commerce Decoupling (Rule 1):** Prevents frontend components from directly importing backend Medusa handlers. All interactions must use the public service client wrapper.
-* **Context Drift Firewall (Rule 7):** Outbound AI text generation hooks invoking Gemini's `streamText` must pipe chunks through `validateAndFilterOutput` to mitigate injection exploits.
-* **Idempotent Webhooks (Rule 4):** Webhook endpoints capturing Medusa or Payload events must validate incoming headers against an explicit `idempotency`, `signature`, or `nonce` variable to guard against replay attacks.
-* **Memory Overhead Guard (Rule 9):** Blocks raw database keys (e.g., `_id`, `product_id`) from being passed directly into un-pruned telemetry log loops.
+```text
+                   ┌─────────────────────────────────────────┐
+                   │   ESLint v9 AST Compile-Time Firewall   │
+                   └─────────────────────────────────────────┘
+        Rule 1: Commerce Decoupling | Rule 2: CMS Access Gate
+        Rule 3: Secure Server Actions| Rule 4: Idempotent Webhooks
+        Rule 5: Concurrency Gate     | Rule 6: Debounced Input Gate
+        Rule 7: Context Drift Filter | Rule 8: Context Exposure Gate
+        Rule 9: Memory Overhead Guard
+```
+
+* **Rule 1: Commerce Decoupling:** Next.js frontend components must never import direct Medusa database handlers or SQL/ORM abstraction clients (such as imports referencing `/db/medusa`). All commerce queries and mutations must flow strictly through the Medusa service API client wrapper.
+* **Rule 2: Secure Access Control Gate (Payload CMS):** You are strictly forbidden from assigning Payload CMS access control rules directly to `true` or to anonymous arrow functions that return `true`. You must implement explicit, authenticated session or user identity checks.
+* **Rule 3: Secure Server Actions (Payload CMS):** In Payload 3.0's native Next.js architecture, Server Actions are exposed HTTP vectors. We must mechanically block any agent or developer from writing blind server action mutations that do not validate the active user's session context. Files utilizing the `use server` directive that execute database mutations must explicitly reference a `session`, `auth`, or `user` variable.
+* **Rule 4: Secure Data Synchronization Webhooks (Idempotency):** Asynchronous data synchronization and incoming webhook handlers (exporting `POST`) performing database or store mutations must explicitly handle an `idempotency`, `signature`, `eventId`, or `nonce` variable to guard against network race conditions, event replay attacks, and data drift.
+* **Rule 5: Throttled Batch Embeddings (Concurrency Gate):** To protect external embedding model APIs from rate limits, developers and agents are prohibited from wrapping an unthrottled array mapping function directly inside a `Promise.all` execution chain. You must implement a batching or chunking mechanism.
+* **Rule 6: Debounced Input Gate:** Prevents direct binding of raw `onChange` listeners to `<input>` fields without debouncing, Controlled state, or a value attribute, avoiding search query floods.
+* **Rule 7: Context Drift Firewall:** Ensures any endpoint invoking `streamText` passes the output through the `validateAndFilterOutput` sanitization filter to mitigate refund/context drift exploits.
+* **Rule 8: Context Exposure Gate:** Blocks files utilizing Gemini AI primitives from directly accessing `process.env`. Configuration values must be routed through a secure, isolated config module.
+* **Rule 9: Memory Window Overhead Guard:** Restricts passing un-pruned database identifiers (like `id`, `_id`, `product_id`) directly into tracking or telemetry functions (`track`, `logContext`, `trackEvent`). Data must be explicitly pruned or mapped beforehand.
 
 ---
 
@@ -67,10 +79,77 @@ Aura implements a sub-second semantic search pipeline alongside an AI Visual Con
 
 ### 1. Vector Search Architecture
 
+```text
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                      AUTOMATED INGESTION ENGINE                        │
+  └────────────────────────────────────────────────────────────────────────┘
+    [Medusa/Payload Mutations] ──► [Idempotent Webhook Route Handler]
+                                                   │
+                                                   ▼
+                                        [Throttled Batch Engine]
+                                                   │
+                                                   ▼
+                                       [Gemini Embedding 2 API]
+                                                   │
+                                                   ▼
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                         DATA & RETRIEVAL TIER                          │
+  └────────────────────────────────────────────────────────────────────────┘
+                                    [Neon PostgreSQL]
+                             (pgvector + HNSW Graph Index)
+                                       ▲       │
+                       Query Vector    │       │  Matched Products (ms)
+                      (<=> Cosine Dist)│       ▼
+                               [Public Search API Endpoint]
+```
+
 * **Embedding Layer:** `gemini-embedding-2` truncated to `1,536` dimensions using Matryoshka Representation Learning to optimize PostgreSQL's HNSW index constraints.
 * **Database Engine:** Neon PostgreSQL utilizing `pgvector` with Cosine distance indexing (`<=>`).
 
 ### 2. AI Visual Concierge (Support Chat)
+
+```text
+                  ┌─────────────────────────────────────────┐
+                  │      Incoming Customer Request Chat     │
+                  └─────────────────────────────────────────┘
+                                       │
+                                       ▼
+                  ┌─────────────────────────────────────────┐
+                  │    DYNAMIC PREPROCESSOR CONTEXT LAYER   │
+                  └─────────────────────────────────────────┘
+                    Reads headers (x-user-role, x-live-session-items)
+                                       │
+                    ├─► [Variation A: Anonymous / Cold Start]
+                    ├─► [Variation B: Active Guest Signals]
+                    └─► [Variation C: Logged-in Customer History]
+                                       │
+                                       ▼
+                  ┌─────────────────────────────────────────┐
+                  │      SLIDING WINDOW CONTEXT PRUNING     │
+                  └─────────────────────────────────────────┘
+                    Keeps last 10 messages (starts on user role)
+                    Prevents token bloat while preserving turns
+                                       │
+                                       ▼
+                  ┌─────────────────────────────────────────┐
+                  │      GEMINI 2.5 INFRASTRUCTURE TIER     │
+                  └─────────────────────────────────────────┘
+                    Executes streamText with Zero-Trust Prompt
+                                       │
+                (Tool Invocations)     │     (Streaming Token Stream)
+                 ┌─────────────────────┴───────────────┐
+                 ▼                                     ▼
+      ┌────────────────────┐                 ┌────────────────────┐
+      │   TOOL EXECUTION   │                 │  OUTPUT GENERATOR  │
+      └────────────────────┘                 └────────────────────┘
+       ├─► [IdObfuscator]                     ├─► [Drift Firewall]
+       │   Translates real/opaque IDs         │   validateAndFilterOutput
+       │                                      │
+       └─► [HardRestraints]                   ▼
+           Clamps query price <= $500        ┌────────────────────┐
+           Clamps cart add qty <= 5          │ Secure Chat Stream │
+                                             └────────────────────┘
+```
 
 * **Dynamic Preprocessor:** Reads `x-user-role`, `x-session-id`, and `x-active-items` headers to cleanly map context to specific system prompt variations (Anonymous, Recognized Guest, or Logged-in Customer).
 * **Luxury Brand Restraints:** Implements aspect-locked (`aspect-[3/4]`), zero-border-radius (`rounded-none`) image containers with strict color-preserving scaling transitions to respect high-end visual aesthetics.
@@ -84,6 +163,30 @@ Aura inherits and retains the complete headless engine provided by the upstream 
 * **Commerce Modules:** Multi-region scaling, automatic localized country/currency detection, and tax calculations.
 * **Checkout & Cart:** Advanced promotional code validation, multi-step secure shipping paths, and modular payment entryways.
 * **Customer Accounts:** Native address book management, persistent cart states, and historical order transfer tracking.
+
+---
+
+## 🤖 Development Infrastructure & Dual-Model Workflow
+
+This repository was developed entirely by **Google's Antigravity AI Agent** within the **Google Antigravity IDE**, utilizing a strict, decoupled **Cross-Model Verification Loop** to separate initial engineering design from architectural critique.
+
+```text
+ ┌───────────────────────────┐
+ │   Google Antigravity IDE  │ ──► Proposes initial implementation plan
+ └───────────────────────────┘
+               │
+               ▼ (Exported Blueprint)
+ ┌───────────────────────────┐
+ │  Isolated Chat Platform   │ ──► Acts as Senior Peer Reviewer
+ │   (Architectural Critique)│     Stress-tests logic & design patterns
+ └───────────────────────────┘
+               │
+               ▼ (Refined & Approved Plan)
+ ┌───────────────────────────┐
+ │   Local Context-Aware     │ ──► Native code scaffolding inside
+ │       Scaffolding         │     atomic modules (`src/modules/`)
+ └───────────────────────────┘
+```
 
 ---
 
@@ -115,9 +218,9 @@ Aura inherits and retains the complete headless engine provided by the upstream 
 1. **Database Setup & Local Seeding:**
 
 ```bash
-   cd apps/backend
-   pnpm medusa db:migrate
-   pnpm medusa user -e admin@test.com -p supersecret
+   # Execute migrations and seed users directly from the root workspace
+   pnpm --filter=@dtc/backend medusa db:migrate
+   pnpm --filter=@dtc/backend medusa user -e admin@test.com -p supersecret
 ```
 
 1. **Boot the Workspace Engine:**
