@@ -13,7 +13,7 @@ These tokens define our styling primitives and must be implemented exactly withi
 Our visual canvas is built around a pristine, high-contrast white and deep charcoal/black palette. Artificial shadow overlays, glowing borders, or heavy gradients are prohibited.
 
 | Token | Hex Value | Purpose / Usage |
-|---|---|---|
+| --- | --- | --- |
 | `primary` | `#000000` | Heavy text headers, core interactive borders, action backgrounds. |
 | `secondary` | `#5d5f5f` | Secondary labels, subtexts, auxiliary borders. |
 | `graphite` | `#333333` | Campaign text content overlays, highly readable dark charcoal. |

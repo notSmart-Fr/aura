@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google"
-import { streamText, createDataStreamResponse, jsonSchema } from "ai"
+import { streamText, createDataStreamResponse, jsonSchema, generateObject } from "ai"
 import { generateEmbedding, getDbPool, ensureThumbnailColumn, generateProductDescription, upsertProductEmbedding } from "@lib/embeddings"
 import { validateAndFilterOutput } from "@lib/security-firewall"
 import { sdk } from "@lib/config"
@@ -166,18 +166,74 @@ ${personalizationLayer}
                     `SELECT product_id, handle, title, description, thumbnail
                      FROM product_embeddings
                      ORDER BY embedding <=> $1::halfvec ASC
-                     LIMIT 3`,
+                     LIMIT 10`,
                     [queryVectorString]
                   )
 
-                  // Postprocessor & Data Leak Isolation: Obfuscate database primary keys (product_id)
-                  const obfuscatedResults = dbResult.rows.map((row: any) => ({
-                    ...row,
-                    product_id: obfuscator.obfuscate(row.product_id, "product")
+                  const rawRows = dbResult.rows || []
+
+                  // Rerank candidates using gemini-2.5-flash with structured JSON output
+                  let finalRows = []
+                  let fuzzyFallback = false
+
+                  if (rawRows.length > 0) {
+                    const candidatesForModel = rawRows.map((row: any) => ({
+                      product_id: row.product_id,
+                      title: row.title,
+                      description: row.description
+                    }))
+
+                    try {
+                      const { object } = await generateObject({
+                        model: google("gemini-2.5-flash"),
+                        schema: jsonSchema<{ matchingProductIds: string[] }>({
+                          type: "object",
+                          properties: {
+                            matchingProductIds: {
+                              type: "array",
+                              items: { type: "string" },
+                              description: "List of product IDs that match the search query strictly."
+                            }
+                          },
+                          required: ["matchingProductIds"]
+                        }),
+                        prompt: `User Query: "${query.trim()}"
+
+Candidate Products:
+${candidatesForModel.map(c => `- ID: ${c.product_id}\n  Title: ${c.title}\n  Description: ${c.description}`).join("\n")}
+
+Instructions:
+Perform a binary evaluation (keep or discard) on each candidate product based strictly on the User Query.
+If the query explicitly asks for a specific category or modifier (e.g. "shirt"), discard items of other categories (e.g. discard "shorts", "sweatshirts", "pants", "jackets").
+Only keep products that strictly match the query.
+Return the matching product IDs in the JSON schema format.`
+                      })
+
+                      const matchingIds = new Set(object?.matchingProductIds || [])
+                      finalRows = rawRows.filter((row: any) => matchingIds.has(row.product_id))
+                    } catch (rerankError) {
+                      console.error("Reranking failed, falling back to database search:", rerankError)
+                    }
+                  }
+
+                  // Fallback Protection Gate
+                  if (finalRows.length === 0) {
+                    finalRows = rawRows.slice(0, 3)
+                    fuzzyFallback = true
+                  }
+
+                  // Map to explicit DTO matching Rule 10 (Serialization Gate)
+                  const prunedResults = finalRows.map((row: any) => ({
+                    product_id: obfuscator.obfuscate(row.product_id, "product"),
+                    handle: row.handle,
+                    title: row.title,
+                    description: row.description,
+                    thumbnail: row.thumbnail
                   }))
 
                   return {
-                    results: obfuscatedResults,
+                    results: prunedResults,
+                    fuzzyFallback,
                     restraintApplied: validation.restraintApplied,
                     message: validation.message,
                     originalValue: args.maxPrice,

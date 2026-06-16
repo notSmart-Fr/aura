@@ -1,5 +1,5 @@
 import clsx from "clsx"
-import {
+import React, {
   ButtonHTMLAttributes,
   forwardRef,
   HTMLAttributes,
@@ -22,10 +22,10 @@ type TextProps = HTMLAttributes<HTMLParagraphElement> & {
 
 export const Text = forwardRef<HTMLParagraphElement, TextProps>(
   ({ className, as: Component = "p", children, ...props }, ref) => {
-    return (
-      <Component ref={ref} className={clsx("text-base", className)} {...props}>
-        {children}
-      </Component>
+    return React.createElement(
+      Component,
+      { ref, className: clsx("text-base", className), ...props },
+      children
     )
   }
 )
@@ -38,20 +38,20 @@ type HeadingProps = HTMLAttributes<HTMLHeadingElement> & {
 
 export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
   ({ className, level: Component = "h2", children, ...props }, ref) => {
-    return (
-      <Component
-        ref={ref}
-        className={clsx(
+    return React.createElement(
+      Component,
+      {
+        ref,
+        className: clsx(
           "font-semibold",
           Component === "h1" && "text-3xl",
           Component === "h2" && "text-2xl",
           Component === "h3" && "text-xl",
           className
-        )}
-        {...props}
-      >
-        {children}
-      </Component>
+        ),
+        ...props,
+      },
+      children
     )
   }
 )

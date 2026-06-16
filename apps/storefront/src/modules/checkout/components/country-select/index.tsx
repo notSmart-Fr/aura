@@ -34,7 +34,13 @@ const CountrySelect = forwardRef<
       ref={innerRef}
       placeholder={placeholder}
       defaultValue={defaultValue}
-      {...props}
+      className={props.className}
+      name={props.name}
+      required={props.required}
+      disabled={props.disabled}
+      onChange={props.onChange}
+      onBlur={props.onBlur}
+      autoComplete={props.autoComplete}
     >
       {countryOptions?.map(({ value, label }, index) => (
         <option key={index} value={value}>

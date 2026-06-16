@@ -1,24 +1,30 @@
 import { ArrowUpRightMini } from "@medusajs/icons"
-import { Text } from "@modules/common/components/ui"
+import { Text, clx } from "@modules/common/components/ui"
 import LocalizedClientLink from "../localized-client-link"
 type InteractiveLinkProps = {
   href: string
   children?: React.ReactNode
   onClick?: () => void
+  className?: string
+  target?: string
+  rel?: string
 }
 
 const InteractiveLink = ({
   href,
   children,
   onClick,
-  ...props
+  className,
+  target,
+  rel,
 }: InteractiveLinkProps) => {
   return (
     <LocalizedClientLink
-      className="flex gap-x-1 items-center group"
+      className={clx("flex gap-x-1 items-center group", className)}
       href={href}
       onClick={onClick}
-      {...props}
+      target={target}
+      rel={rel}
     >
       <Text className="text-ui-fg-interactive">{children}</Text>
       <ArrowUpRightMini

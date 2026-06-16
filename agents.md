@@ -113,20 +113,20 @@ To prevent developers and coding agents from accidentally introducing architectu
 
 ### Rule 2: Secure Access Control Gate (Payload CMS)
 
-- **The Constraint:** You are strictly forbidden from assigning Payload CMS access control rules directly to `true` or to anonymous arrow functions that return `true` (e.g. `read: () => true`). You must implement explicit, authenticated session or user identity checks.
+- **The Constraint:** You are strictly forbidden from assigning Payload CMS access control rules directly to `true`, `!false`, or anonymous arrow functions that return constant truthy values or basic tautologies (e.g., `1 === 1`). You must implement explicit, authenticated session or user identity checks.
 - **AST Selector:**
 
   ```json
-  "Property[key.name='access'] Property[key.name=/^(read|update|delete)$/][value.body.value=true]"
+  "Property[key.name='access'] Property[key.name=/^(read|create|update|delete)$/] > :matches(Literal[value=true], UnaryExpression[operator='!'][argument.value=false], ArrowFunctionExpression > :matches(Literal[value=true], BlockStatement ReturnStatement > Literal[value=true]))"
   ```
 
 ### Rule 3: Secure Server Actions (Payload CMS)
 
-- **The Constraint:** In Payload 3.0's native Next.js architecture, Server Actions are exposed HTTP vectors. We must mechanically block any agent or developer from writing blind server action mutations that do not validate the active user's session context. Files using 'use server' that execute database mutations must explicitly reference a `session`, `auth`, or `user` variable to enforce ownership validation.
+- **The Constraint:** In Payload 3.0's native Next.js architecture, Server Actions are exposed HTTP vectors. We must mechanically block any agent or developer from writing blind server action mutations that do not validate the active user's session context. Files using 'use server' that execute database mutations must explicitly reference a `session`, `auth`, or `user` variable to enforce ownership validation, or overrideAccess must resolve statically to false.
 - **AST Selector:**
 
   ```json
-  "Program:has(ExpressionStatement[expression.value='use server']):not(:has(Identifier[name=/^(auth|session|user)$/])) CallExpression[callee.property.name=/^(create|update|delete)$/]"
+  "Program:has(ExpressionStatement[expression.value='use server']):not(:has(Identifier[name=/^(auth|session|user)$/])) CallExpression[callee.property.name=/^(create|update|delete)$/]:not(:has(Property[key.name='overrideAccess'][value.value=false]))"
   ```
 
 ### Rule 4: Secure Data Synchronization Webhooks
@@ -183,4 +183,15 @@ To prevent developers and coding agents from accidentally introducing architectu
   "CallExpression[callee.name=/^(track|logContext|trackContext|trackEvent)$/i] MemberExpression[property.name=/^(id|_id|product_id)$/i]"
   ```
 
+### Rule 10: Server-to-Client Data Serialization Gate
+
+- **The Constraint:** To prevent unintended data exposure, internal cost margins, supply chain data, or user account metadata must never bleed across the Next.js network serialization wire. Passing server-side database or CMS payload records directly into a client element signature (\"use client\") using raw spread operators (e.g., `<ProductDisplay {...rawProductRow}/>`) is strictly blocked. Data must be explicitly mapped via a clean Data Transfer Object (DTO) utility function.
+- **AST Selector:**
+
+  ```json
+  "JSXOpeningElement[name.type='JSXIdentifier'][name.name=/^[A-Z]/] > JSXSpreadAttribute"
+  ```
+
 - **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If any violation is caught, agents must immediately refactor their code to comply with these rules.
+- **AST Modification Constraint:** Coding agents are strictly prohibited from modifying `eslint.config.mjs` or any ESLint configuration files in the workspace unless the user explicitly requests a rule modification or creation.
+- **Terminal Execution Constraint:** Coding agents must never execute terminal or shell commands on the system.
