@@ -243,6 +243,24 @@ This repository was developed entirely through an agentic workflow within the **
 * Medusa Admin Endpoint: `http://localhost:9000/app`
 * Payload CMS Admin Endpoint: `http://localhost:8000/admin`
 
+### Verification Test Execution
+
+To verify the AI concierge, hard restraints, vector pipeline, and database queries:
+
+**On Windows (PowerShell):**
+
+```powershell
+cd apps/storefront
+.\src\tests\run-tests.ps1
+```
+
+**On macOS / Linux (Bash):**
+
+```bash
+cd apps/storefront
+bash src/tests/run-tests.sh
+```
+
 ---
 
 ## 🛠️ Monorepo Troubleshooting
