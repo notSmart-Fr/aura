@@ -1,15 +1,11 @@
 import path from "path"
-import medusaUiPreset from "@medusajs/ui-preset"
 import tailwindcssRadix from "tailwindcss-radix"
 
 const tailwindConfig = {
   darkMode: "class",
-  presets: [medusaUiPreset],
   content: [
-    "./src/app/**/*.{js,ts,jsx,tsx}",
-    "./src/pages/**/*.{js,ts,jsx,tsx}",
-    "./src/components/**/*.{js,ts,jsx,tsx}",
-    "./src/modules/**/*.{js,ts,jsx,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -22,6 +18,35 @@ const tailwindConfig = {
         padding: "padding-top padding-right padding-bottom padding-left",
       },
       colors: {
+        ui: {
+          fg: {
+            base: "var(--fg-base)",
+            subtle: "var(--fg-subtle)",
+            muted: "var(--fg-muted)",
+            interactive: "var(--fg-interactive)",
+            error: "var(--fg-error)",
+            disabled: "var(--fg-disabled)",
+          },
+          bg: {
+            base: "var(--bg-base)",
+            subtle: "var(--bg-subtle)",
+            field: "var(--bg-field)",
+            component: "var(--bg-component)",
+            "component-pressed": "var(--bg-component-pressed)",
+            disabled: "var(--bg-disabled)",
+            interactive: "var(--bg-interactive)",
+          },
+          border: {
+            base: "var(--border-base)",
+            interactive: "var(--border-interactive)",
+            strong: "var(--border-strong)",
+          },
+          button: {
+            neutral: {
+              hover: "var(--button-neutral-hover)",
+            }
+          }
+        },
         grey: {
           0: "#FFFFFF",
           5: "#F9FAFB",
