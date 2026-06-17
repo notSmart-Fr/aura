@@ -1,0 +1,54 @@
+{
+  "defaultLanguage": "en",
+  "defaultZone": "Europe",
+  "countries": [
+    { "code": "GB", "name": "United Kingdom", "zone": "Europe" },
+    { "code": "DE", "name": "Germany", "zone": "Europe" },
+    { "code": "FR", "name": "France", "zone": "Europe" },
+    { "code": "US", "name": "United States", "zone": "Americas" }
+  ],
+  "taxRates": [
+    { "name": "Standard Tax", "percentage": 20 }
+  ],
+  "shippingMethods": [
+    { "name": "Standard Shipping", "price": 1000 },
+    { "name": "Express Shipping", "price": 2000 }
+  ],
+  "paymentMethods": [
+    {
+      "name": "Standard Payment",
+      "handler": {
+        "code": "dummy-payment-handler",
+        "arguments": [
+          { "name": "automaticSettle", "value": "true" }
+        ]
+      }
+    }
+  ],
+  "collections": [
+    {
+      "name": "Shirts",
+      "slug": "shirts",
+      "private": false,
+      "filters": []
+    },
+    {
+      "name": "Sweatshirts",
+      "slug": "sweatshirts",
+      "private": false,
+      "filters": []
+    },
+    {
+      "name": "Pants",
+      "slug": "pants",
+      "private": false,
+      "filters": []
+    },
+    {
+      "name": "Merch",
+      "slug": "merch",
+      "private": false,
+      "filters": []
+    }
+  ]
+}

@@ -35,10 +35,34 @@ This phase collapses our core components down into an integrated, transaction-sa
 
 ### Quick Start (Current Stack)
 
-```bash
-pnpm install
-cd apps/backend && pnpm run dev
-cd ../storefront && pnpm run dev
-```
+1. **Install Dependencies**
+
+   ```bash
+   pnpm install
+   ```
+
+2. **Run in Separate Terminals**
+
+   To run the backend and storefront services in separate terminals, execute the following commands from the root directory:
+
+   * **Terminal 1 (Backend):**
+
+     ```bash
+     pnpm run backend:dev
+     ```
+
+   * **Terminal 2 (Storefront):**
+
+     ```bash
+     pnpm run storefront:dev
+     ```
+
+3. **Check AST Compiler Firewall**
+
+   To execute the build-time AST compiler firewall checks and verify rule compliance:
+
+   ```bash
+   pnpm run check:firewall
+   ```
 
 </details>

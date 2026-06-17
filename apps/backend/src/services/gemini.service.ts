@@ -1,6 +1,8 @@
+import { apiConfig } from '../config';
+
 export class GeminiEmbeddingService {
   async getEmbedding(text: string): Promise<number[]> {
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || "";
+    const apiKey = apiConfig.apiKey;
     if (!apiKey) {
       throw new Error("Missing Google Gemini API Key context inside the environment variables");
     }

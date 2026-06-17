@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
-    "@mastra/core": "^0.1.0",
+    "@mastra/core": "latest",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.55.0",
     "@radix-ui/react-accordion": "^1.2.3",

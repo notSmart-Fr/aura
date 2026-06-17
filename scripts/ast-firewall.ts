@@ -1,4 +1,4 @@
-import { Project, SyntaxKind } from "ts-morph";
+import { Project, SyntaxKind, Node } from "ts-morph";
 import * as path from "path";
 
 async function runFirewall() {
@@ -43,7 +43,7 @@ async function runFirewall() {
                 const callText = call.getText();
                 
                 // String constraint check (.max)
-                if (callText.startsWith("z.string") || callText.includes(".string(")) {
+                if (call.getExpression().getText() === "z.string") {
                   let current: any = call;
                   let hasMax = false;
                   while (current && current !== initializer) {
@@ -64,7 +64,7 @@ async function runFirewall() {
                 }
 
                 // Number constraint check (.min and .max)
-                if (callText.startsWith("z.number") || callText.includes(".number(")) {
+                if (call.getExpression().getText() === "z.number") {
                   let current: any = call;
                   let hasMin = false;
                   let hasMax = false;
@@ -142,8 +142,8 @@ async function runFirewall() {
         let hasOnChange = false;
         let hasDebounceOrValue = false;
         for (const attr of attributes) {
-          if (attr.getKind() === SyntaxKind.JsxAttribute) {
-            const name = attr.getName();
+          if (Node.isJsxAttribute(attr)) {
+            const name = attr.getNameNode().getText();
             if (name === "onChange") hasOnChange = true;
             if (/^(debounce|useDebounce|value)$/.test(name)) hasDebounceOrValue = true;
           }

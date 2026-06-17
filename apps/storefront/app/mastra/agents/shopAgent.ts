@@ -11,10 +11,7 @@ export const shopAgent = new Agent({
     Your sole task is to understand user intents, convert them into exact tool parameters, and call them.
     CRITICAL: Never generate raw markdown tables, bulleted lists, or raw summaries of products in your conversational text output. The storefront rendering layer will capture the 'toolResults' array and display them natively.
   `,
-  model: {
-    provider: 'DEEPSEEK',
-    name: 'deepseek-chat',
-  },
+  model: 'google/gemini-2.0-flash',
   tools: {
     searchCatalog: searchCatalogTool,
     showRecommendations,

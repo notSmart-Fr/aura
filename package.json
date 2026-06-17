@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "pnpm -r dev",
-    "check:firewall": "ts-node scripts/ast-firewall.ts",
+    "check:firewall": "node --no-warnings --experimental-strip-types scripts/ast-firewall.ts",
     "build": "pnpm run check:firewall && pnpm -r build",
     "start": "turbo start",
     "lint": "turbo lint",
@@ -17,6 +17,7 @@
     "storefront:dev": "turbo dev --filter=@dtc/storefront"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "prettier": "^3.2.5",
     "ts-morph": "^22.0.0",
     "ts-node": "^10.9.2",
