@@ -1,14 +1,14 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-export const SearchCatalogSchema = z.object({
+export const SearchCatalogInputSchema = z.object({
   term: z.string().min(2).max(150).describe('The natural style customer search term')
 });
 
 export const searchCatalogTool = createTool({
   id: 'searchCatalog',
   description: 'Search for storefront products in Vendure catalog using semantic lookups',
-  inputSchema: SearchCatalogSchema,
+  inputSchema: SearchCatalogInputSchema,
   execute: async ({ input }) => {
     const graphqlQuery = `
       query SearchCatalog($input: SearchInput!) {

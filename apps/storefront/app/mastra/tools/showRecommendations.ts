@@ -1,16 +1,16 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-export const ShowRecommendationsSchema = z.object({
-  intro: z.string().describe('A refined, brand-aligned introductory text for the user'),
-  productHandles: z.array(z.string()).describe('List of product slugs/handles to display'),
-  outro: z.string().describe('A polite, contextual call-to-action closing phrase')
+export const ShowRecommendationsInputSchema = z.object({
+  intro: z.string().max(500).describe('A refined, brand-aligned introductory text for the user'),
+  productHandles: z.array(z.string().max(100)).describe('List of product slugs/handles to display'),
+  outro: z.string().max(500).describe('A polite, contextual call-to-action closing phrase')
 });
 
 export const showRecommendations = createTool({
   id: 'showRecommendations',
   description: 'Retrieve detailed information for products to display visually in the UI recommendations drawer',
-  inputSchema: ShowRecommendationsSchema,
+  inputSchema: ShowRecommendationsInputSchema,
   execute: async ({ input }) => {
     const graphqlQuery = `
       query GetProducts($slugs: [String!]!) {

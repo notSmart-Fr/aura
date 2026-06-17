@@ -1,15 +1,15 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-export const ModifyCartSchema = z.object({
-  productVariantId: z.string().describe('The database ID of the specific product variant to add'),
-  quantity: z.number().default(1).describe('The quantity of the item to add to the active cart order')
+export const ModifyCartInputSchema = z.object({
+  productVariantId: z.string().max(255).describe('The database ID of the specific product variant to add'),
+  quantity: z.number().min(1).max(99).default(1).describe('The quantity of the item to add to the active cart order')
 });
 
 export const modifyCart = createTool({
   id: 'modifyCart',
   description: 'Add a specific product variant to the customer active shopping cart order',
-  inputSchema: ModifyCartSchema,
+  inputSchema: ModifyCartInputSchema,
   execute: async ({ input }) => {
     const graphqlMutation = `
       mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {

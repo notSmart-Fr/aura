@@ -97,14 +97,14 @@ To prevent developers and coding agents from accidentally introducing architectu
 
 ### Rule 1: Decoupled Commerce Layer
 
-- **The Constraint:** Next.js/Remix frontend components must never import direct database handlers or SQL/ORM abstraction clients. All commerce queries and mutations must flow strictly through the Vendure GraphQL service API client wrapper.
+- **The Constraint:** Remix frontend components must never import direct database handlers or SQL/ORM abstraction clients. All commerce queries and mutations must flow strictly through the Vendure GraphQL service API client wrapper.
 - **AST Selector:**
 
   ```json
   "ImportDeclaration[source.value=/\\/db\\/medusa/]"
   ```
 
-### Rule 2: Secure Access Control Gate (Payload CMS)
+### Rule 2: Secure Access Control Gate (Vendure/Storefront)
 
 - **The Constraint:** You are strictly forbidden from assigning access control rules directly to `true`, `!false`, or anonymous arrow functions that return constant truthy values or basic tautologies. You must implement explicit, authenticated session or user identity checks.
 - **AST Selector:**
@@ -185,7 +185,7 @@ To prevent developers and coding agents from accidentally introducing architectu
   "JSXOpeningElement[name.type='JSXIdentifier'][name.name=/^[A-Z]/] > JSXSpreadAttribute"
   ```
 
-- **Agent Verification Loop:** All coding agents must execute the linter (`npx eslint .` within `apps/storefront/`) before completing any work. If any violation is caught, agents must immediately refactor their code to comply with these rules.
-- **AST Modification Constraint:** Coding agents are strictly prohibited from modifying `eslint.config.mjs` or any ESLint configuration files in the workspace unless the user explicitly requests a rule modification or creation.
-- **ESLint Bypass Constraint:** Coding agents are strictly prohibited from using `eslint-disable` comments or lint directives (e.g., `// eslint-disable-next-line`, `/* eslint-disable */`) to bypass ESLint rule validations and architectural security guardrails. All code must comply with configured ESLint checks natively.
+- **Agent Verification Loop:** All coding agents must verify code boundaries by running the root-level compilation firewall sweep (`pnpm run check:firewall`) before completing work. If any structural security violations are caught, agents must immediately refactor their code to comply.
+- **AST Modification Constraint:** Coding agents are strictly prohibited from modifying `eslint.config.mjs` or any ESLint configuration files in the workspace unless explicitly requested by the user to prune, add, or modify rules.
+- **Bypass Constraint:** Coding agents are strictly prohibited from using bypass comments (e.g. `// eslint-disable-next-line` or bypass markers) to circumvent compilation checking checks.
 - **Terminal Execution Constraint:** Coding agents must never execute terminal or shell commands on the system.
