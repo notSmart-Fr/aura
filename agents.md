@@ -189,3 +189,22 @@ To prevent developers and coding agents from accidentally introducing architectu
 - **AST Modification Constraint:** Coding agents are strictly prohibited from modifying `eslint.config.mjs` or any ESLint configuration files in the workspace unless explicitly requested by the user to prune, add, or modify rules.
 - **Bypass Constraint:** Coding agents are strictly prohibited from using bypass comments (e.g. `// eslint-disable-next-line` or bypass markers) to circumvent compilation checking checks.
 - **Terminal Execution Constraint:** Coding agents must never execute terminal or shell commands on the system.
+
+---
+
+## 6. AGENT-NATIVE EXECUTION STRATEGY (DATA-FIRST PARADIGM)
+
+### Principle A: Data-First Grounding
+
+- The agent is strictly prohibited from generating UI components or Remix routes based on assumed object structures.
+- **Execution Vector:** The agent must first inspect the Vendure GraphQL Schema or the Mastra tool definition to establish the absolute data contract. Component layout creation is down-stream from data contract validation.
+
+### Principle B: Forward-Chaining Determinism
+
+- The agent must maintain a linear, state-verified execution loop. It must never chain speculative implementation steps.
+- Each action block must prove its preconditions (e.g., verified input types, verified schema constraints, validated AST rules) before emitting modifications to leaf nodes.
+
+### Principle C: Single-Purpose Tool Delegation
+
+- When orchestrating complex user interactions inside the Concierge Support Widget, the agent must treat Mastra tools as isolated mathematical functions.
+- Avoid multi-branching internal logic. Delegate complex state selection completely to discrete leaf tools (`searchCatalogTool`, `modifyCart`, `showRecommendations`), ensuring inputs match the precise Zod schema constraints enforced by the compile-time firewall.
