@@ -25,8 +25,11 @@ This phase explores the loose integration of a fragmented full-stack setup, focu
 
 ### Phase 2 System Architecture Overview
 
-This phase collapses our core components down into an integrated, transaction-safe, token-efficient data graph. All business rules and inventory operations are isolated behind a unified GraphQL gateway, utilizing Remix server gates to enforce strict type-safe execution loops.
+This phase collapses our core components down into an integrated, transaction-safe, token-efficient data graph. Development is driven by **Google's Antigravity** coding assistant, integrating advanced RAG (Retrieval-Augmented Generation) engineering and the ReAct (Reasoning and Acting) orchestration framework to execute precise backend operations and client experiences. All business rules and inventory operations are isolated behind a unified GraphQL gateway, utilizing Remix server gates to enforce strict type-safe execution loops.
 
+* **Development Engine:** Google's Antigravity (Advanced Agentic Coding Assistant)
+* **Orchestration Pattern:** ReAct (Reasoning and Acting) via Mastra Agents
+* **Knowledge Retrieval:** Advanced RAG (Retrieval-Augmented Generation) Engineering
 * **Framework Layer:** Remix Vite Engine (Unified Server-to-Browser Type Loops)
 * **AI Orchestration:** Mastra Tools + DeepSeek-V3 Engine
 * **Commerce Foundation:** Vendure Headless GraphQL Core (TypeORM + Neon Postgres `pgvector`)

@@ -185,6 +185,32 @@ To prevent developers and coding agents from accidentally introducing architectu
   "JSXOpeningElement[name.type='JSXIdentifier'][name.name=/^[A-Z]/] > JSXSpreadAttribute"
   ```
 
+### RULE 13: THE VENDURE OPTION-MATRIX PATTERN (DATA-FIRST RULE)
+
+- **Constraint:** You are strictly prohibited from treating apparel variants (e.g., sizes, colors, fits) as flat, top-level object keys or speculative schema fields.
+- **Execution Protocol:**
+  1. You must explicitly query the generated GraphQL schema types (`ProductVariantFragment` or similar) to map through a `ProductVariant` entity’s `options` array matrix.
+  2. To resolve an active variant based on a user interface choice, you must traverse and match options back to their parent group code dynamically.
+- **Structural Blueprint:** `variant.options.find(opt => opt.group.code === 'size')?.code === selectedSize`
+
+### RULE 14: STRICT NORMALIZED PRODUCT-VARIANT TOPOGRAPHY
+
+- **Constraint:** You are strictly prohibited from creating multiple standalone parent `Product` entries or duplicate database rows to represent size, color, or material variations of the same product blueprint. Doing so corrupts the Admin UI data tables.
+- **Execution Protocol:**
+  1. Initialize EXACTLY ONE root parent `Product` record shell (e.g., "AURA Boxy Sweatshirt").
+  2. Query, verify, or create the required global `ProductOptionGroup` and child `ProductOption` nodes via the graph.
+  3. Attach those valid `ProductOptionGroup` IDs directly to the single parent `Product`.
+  4. Invoke a singular `createProductVariants` mutation, passing the flat array of intersecting option IDs to spin up the variation matrix cleanly underneath that single parent shell.
+
+### RULE 15: DETERMINISTIC CSV INGESTION FIREWALLS
+
+- **Constraint:** You are completely blocked from passing raw text tokens, un-throttled array loops, or un-validated string lines from local `.csv` spreadsheets directly into the database seed mutations. This pipeline sits outside static AST lint gates and must be checked via an input validation gateway.
+- **Execution Protocol:**
+  1. **Schema Pre-flight Sanitization:** Run all CSV string records through an explicit schema validation block (such as Zod). Force all monetary decimals or string prices to transform into un-fractioned, absolute integers (e.g., `"45.00"` must convert to a clean math integer of `4500`).
+  2. **Relational Reconstruction Step:** Accumulate and loop through the CSV rows locally to group variant definitions by their core product identifier *before* executing mutations, matching the exact topology dictated in Rule 14.
+  3. **ID Resolution Lock:** Translate raw option text strings from the CSV (e.g., "Small") into verified database option IDs before building your payload array.
+- **Enforcement Gate:** Instantly abort the initialization script execution if any CSV row contains an empty SKU string, non-numeric price formats, or un-mapped option strings.
+
 - **Agent Verification Loop:** All coding agents must verify code boundaries by running the root-level compilation firewall sweep (`pnpm run check:firewall`) before completing work. If any structural security violations are caught, agents must immediately refactor their code to comply.
 - **AST Modification Constraint:** Coding agents are strictly prohibited from modifying `eslint.config.mjs` or any ESLint configuration files in the workspace unless explicitly requested by the user to prune, add, or modify rules.
 - **Bypass Constraint:** Coding agents are strictly prohibited from using bypass comments (e.g. `// eslint-disable-next-line` or bypass markers) to circumvent compilation checking checks.
@@ -208,3 +234,14 @@ To prevent developers and coding agents from accidentally introducing architectu
 
 - When orchestrating complex user interactions inside the Concierge Support Widget, the agent must treat Mastra tools as isolated mathematical functions.
 - Avoid multi-branching internal logic. Delegate complex state selection completely to discrete leaf tools (`searchCatalogTool`, `modifyCart`, `showRecommendations`), ensuring inputs match the precise Zod schema constraints enforced by the compile-time firewall.
+
+### Principle D: Ponytail Execution Rules (YAGNI & Platform Reuse)
+
+- **Prioritize Unwritten Code:** Before writing any custom TypeScript, React components, or data wrappers, you must evaluate the ladder:
+  1. **YAGNI:** Does this function need to exist? If not, skip it completely.
+  2. **STDLIB:** Does the native JavaScript/TypeScript standard library already do this? Use it.
+  3. **PLATFORM:** Is there a native web platform feature (e.g., `<input type="date">`, native `Fetch`, URLSearchParams)? Use it.
+  4. **DEPENDENCY:** Is there an already-installed package in package.json (like your Vendure SDK or Remix hooks) that covers this? Reuse it. Do not install new packages.
+  5. **ONE-LINE:** Can this be written cleanly in a single line?
+  6. **MINIMUM:** Only if rungs 1-5 fail, write the absolute minimum implementation that safely works.
+- **Security & Accessibility Constraint:** Trust-boundary validation (Zod), security checks, database parameters, and accessibility must never be cut. Every shortcut taken must be documented inline with a `// ponytail: <reason>` comment detailing its upgrade path.
