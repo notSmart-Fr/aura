@@ -45,7 +45,8 @@ You are **strictly prohibited** from creating multiple standalone parent `Produc
 ### Required Execution Protocol
 
 Follow this exact sequence for any product creation:
-**Step 1 — Initialize one root parent shell**
+
+#### Step 1 — Initialize one root parent shell
 
 ```graphql
 mutation {
@@ -57,7 +58,7 @@ mutation {
 }
 ```
 
-**Step 2 — Query, verify, or create `ProductOptionGroup` and child `ProductOption` nodes**
+#### Step 2 — Query, verify, or create `ProductOptionGroup` and child `ProductOption` nodes
 
 ```graphql
 query {
@@ -69,7 +70,7 @@ query {
 }
 ```
 
-**Step 3 — Attach valid `ProductOptionGroup` IDs to the single parent `Product`**
+#### Step 3 — Attach valid `ProductOptionGroup` IDs to the single parent `Product`
 
 ```graphql
 mutation {
@@ -77,7 +78,8 @@ mutation {
 }
 ```
 
-**Step 4 — Invoke a singular `createProductVariants` mutation**
+#### Step 4 — Invoke a singular `createProductVariants` mutation
+
 Pass the flat array of intersecting option IDs to spin up the variation matrix cleanly underneath the single parent shell.
 
 ```graphql

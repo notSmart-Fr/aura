@@ -31,10 +31,10 @@ Before generating any Plan or modifying code, execute an automated search on the
 
 Available skills:
 
-- `.agent/skills/csv-ingestion.md` — CSV/spreadsheet seeding and bulk data import rules
-- `.agent/skills/product-topography.md` — Vendure product variant, option-matrix, and topology rules
-- `.agent/skills/react-orchestration.md` — Mastra agent design, ReAct loop bounds, and tool execution schemas
-- `.agent/skills/rag-pipeline.md` — Vector embedding, semantic search, and RAG context retrieval rules
+- `.agent/skills/csv-ingestion/SKILL.md` — CSV/spreadsheet seeding and bulk data import rules
+- `.agent/skills/product-topography/SKILL.md` — Vendure product variant, option-matrix, and topology rules
+- `.agent/skills/react-orchestration/SKILL.md` — Mastra agent design, ReAct loop bounds, and tool execution schemas
+- `.agent/skills/rag-pipeline/SKILL.md` — Vector embedding, semantic search, and RAG context retrieval rules
 
 ---
 
