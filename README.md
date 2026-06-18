@@ -25,7 +25,7 @@ This phase explores the loose integration of a fragmented full-stack setup, focu
 
 ### Phase 2 System Architecture Overview
 
-This phase collapses our core components down into an integrated, transaction-safe, token-efficient data graph. Development is driven by **Google's Antigravity** coding assistant, integrating advanced RAG (Retrieval-Augmented Generation) engineering and the ReAct (Reasoning and Acting) orchestration framework to execute precise backend operations and client experiences. All business rules and inventory operations are isolated behind a unified GraphQL gateway, utilizing Remix server gates to enforce strict type-safe execution loops.
+This phase collapses our core components down into an integrated, transaction-safe, token-efficient data graph. Development is driven by **Google's Antigravity** coding assistant under a fully agent-native architecture: an `AGENTS.md` system handbook drives deterministic behavior, while on-demand `.agent/skills/` context files load domain rules only when relevant to the active task. All business rules and inventory operations are isolated behind a unified GraphQL gateway, utilizing Remix server gates to enforce strict type-safe execution loops.
 
 * **Development Engine:** Google's Antigravity (Advanced Agentic Coding Assistant)
 * **Orchestration Pattern:** ReAct (Reasoning and Acting) via Mastra Agents
@@ -33,7 +33,8 @@ This phase collapses our core components down into an integrated, transaction-sa
 * **Framework Layer:** Remix Vite Engine (Unified Server-to-Browser Type Loops)
 * **AI Orchestration:** Mastra Tools + DeepSeek-V3 Engine
 * **Commerce Foundation:** Vendure Headless GraphQL Core (TypeORM + Neon Postgres `pgvector`)
-* **AST Security:** Custom build-time compiler firewalls targeting isolated tool schema definitions.
+* **AST Security:** Custom ts-morph build-time compiler firewalls (`scripts/ast-firewall.ts`) targeting isolated tool schema definitions.
+* **Agent Architecture:** `AGENTS.md` global system handbook + `.agent/skills/` on-demand context files.
 * **Full Case Study Documentation:** [View Phase 2 Deep-Dive File](./README.phase2-remix.md)
 
 ### Quick Start (Current Stack)
@@ -60,12 +61,23 @@ This phase collapses our core components down into an integrated, transaction-sa
      pnpm run storefront:dev
      ```
 
-3. **Check AST Compiler Firewall**
+3. **Verify Agent Compliance**
 
-   To execute the build-time AST compiler firewall checks and verify rule compliance:
+   Run the full ts-morph AST security sweep and type checks before declaring any implementation complete:
 
    ```bash
-   pnpm run check:firewall
+   pnpm verify-agent
    ```
+
+4. **Agent Skills Workflow**
+
+   Before starting any plan, the agent reads frontmatter descriptions from `.agent/skills/` and loads only the relevant domain context:
+
+   | Skill file | Activates when... |
+   | ---------- | ----------------- |
+   | `.agent/skills/csv-ingestion.md` | Writing seeders, parsing CSV files, or bulk data imports |
+   | `.agent/skills/product-topography.md` | Creating or modifying Vendure product variants or option matrices |
+   | `.agent/skills/react-orchestration.md` | Building Mastra agents, workflows, or ReAct tool-calling loops |
+   | `.agent/skills/rag-pipeline.md` | Building semantic search, vector chunking, or RAG context retrieval |
 
 </details>

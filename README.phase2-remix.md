@@ -72,46 +72,59 @@ This implementation plan details our conformance strategy and operational plan f
 
 ### Automated Build-Time Enforcement
 
-To ensure absolute structural compliance, code verification is managed via a dedicated TypeScript AST compiler analysis script (`ts-morph`) executed at the monorepo root layer before triggering bundler compilation.
+Code verification is managed via a dedicated TypeScript AST compiler analysis script (`scripts/ast-firewall.ts`) executed at the monorepo root using Node's native `--experimental-strip-types` flag (no `ts-node` required).
 
-The root `package.json` contains script and dependency configurations to execute this pipeline automatically:
+```bash
+# Preferred alias — runs the full AST sweep
+pnpm verify-agent
 
-```json
-{
-  "name": "aura-monorepo",
-  "private": true,
-  "devDependencies": {
-    "ts-morph": "^22.0.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
-  },
-  "scripts": {
-    "check:firewall": "ts-node scripts/ast-firewall.ts",
-    "build": "pnpm run check:firewall && pnpm -r build"
-  }
-}
+# Equivalent direct call
+pnpm run check:firewall
 ```
 
-To run this pipeline successfully:
+Both commands execute `node --no-warnings --experimental-strip-types scripts/ast-firewall.ts` and exit `0` on a clean codebase or `1` with a violation report.
 
-- **Dependencies:** `ts-node`, `ts-morph`, and `typescript` must be installed at the monorepo root.
-- **Module Resolution:** The root `tsconfig.json` compiles the script:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "include": ["scripts/**/*"]
-}
-```
+**Agent mandate:** The agent must run `pnpm verify-agent` before declaring any implementation complete. Bypass comments (`// eslint-disable-next-line`) and modifications to `scripts/ast-firewall.ts` are strictly prohibited.
 
 ### Local Linter Configuration
 
-To prevent rule collisions, local ESLint configurations (e.g., `apps/storefront/eslint.config.mjs`) have been stripped of custom architectural firewalls and reset to lightweight rules (e.g., `eslint:recommended`, `plugin:@typescript-eslint/recommended`, `plugin:react-hooks/recommended`). They are relegated strictly to local code style validations.
+Local ESLint configurations (e.g., `apps/storefront/eslint.config.mjs`) are stripped of architectural firewalls and reset to lightweight rules (`eslint:recommended`, `@typescript-eslint/recommended`, `react-hooks/recommended`) for local code style only. All structural enforcement lives exclusively in `scripts/ast-firewall.ts`.
+
+---
+
+## 🤖 Agent Architecture
+
+### System Handbook (`AGENTS.md`)
+
+The root `AGENTS.md` file is the agent's always-active global instruction set. It contains only high-level behavioral rules, design primitives, and the verification execution loop — keeping the active context window lean.
+
+### On-Demand Skills (`.agent/skills/`)
+
+Heavy, domain-specific rules are isolated into skill files that load **only when the agent's task matches the skill's `description` frontmatter field**:
+
+| Skill | File | Activates when... |
+| ----- | ---- | ----------------- |
+| CSV Ingestion | `.agent/skills/csv-ingestion.md` | Writing seeders, parsing CSV files, or bulk data mutations |
+| Product Topography | `.agent/skills/product-topography.md` | Creating or structuring Vendure product variants or option matrices |
+| ReAct Orchestration | `.agent/skills/react-orchestration.md` | Building Mastra agents, workflows, or ReAct tool-calling loops |
+| RAG Pipeline | `.agent/skills/rag-pipeline.md` | Building semantic search, vector chunking, or RAG context retrieval |
+
+### File Locality (Data-Forward Domain Structure)
+
+All code, types, queries, and tools for a feature are colocated in a self-contained domain leaf — never split by technical layer:
+
+```text
+apps/storefront/app/
+├── routes/                               <-- Pure Routing Wire (Thin)
+│   ├── _index.tsx
+│   └── api.webhook.ts
+└── domains/                              <-- Self-Contained Data Leaf Nodes
+    ├── catalog/
+    │   ├── searchCatalogTool.ts          <-- Mastra Tool
+    │   ├── catalog.component.tsx         <-- Remix Presentation Layer
+    │   └── catalog.queries.ts            <-- Vendure GraphQL Client Queries
+    ├── cart/
+    │   └── modifyCartTool.ts
+    └── recommendations/
+        └── showRecommendationsTool.ts
+```
