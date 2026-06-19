@@ -1,8 +1,12 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
+import { useLoaderData, useFetcher, Link } from "@remix-run/react";
 import React, { useState, useEffect, useRef } from "react";
-import { shopAgent } from "~/mastra/agents/shopAgent";
+import { shopAgent } from "../mastra/agents/shopAgent";
+import { Layout } from "../domains/common/layout.component";
+import { fetchActiveOrder } from "../domains/catalog/catalog.queries";
+import { getSessionToken } from "../domains/common/session.server";
+
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -139,10 +143,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     ];
   }
 
+  const sessionToken = await getSessionToken(request);
+  const activeOrder = await fetchActiveOrder(sessionToken);
+
   return json({
     products,
     isSearch,
     searchTerms,
+    cartCount: activeOrder?.totalQuantity || 0,
   });
 }
 
@@ -177,7 +185,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function HomePage() {
-  const { products, isSearch, searchTerms } = useLoaderData<typeof loader>();
+  const { products, isSearch, searchTerms, cartCount } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
   const [chatOpen, setChatOpen] = useState(false);
@@ -228,31 +236,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col font-sans text-zinc-900">
-      {/* 3A. Top Navigation Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-zinc-200 z-50 px-6 md:px-12 flex items-center justify-between">
-        <div className="flex items-center gap-x-6">
-          <a href="/" className="font-medium tracking-[0.15em] text-xs uppercase text-zinc-900">Collection</a>
-          <a href="/store" className="font-medium tracking-[0.15em] text-xs uppercase text-zinc-900">Store</a>
-        </div>
-        <div className="flex justify-center">
-          <a href="/" className="font-serif tracking-[0.25em] text-xl uppercase font-semibold text-zinc-900">AURA</a>
-        </div>
-        <div className="flex items-center gap-x-4">
-          <form method="get" action="/" className="relative hidden md:block">
-            <input
-              type="text"
-              name="q"
-              defaultValue={searchTerms}
-              placeholder="SEARCH CATALOG..."
-              className="bg-transparent border border-zinc-200 text-xs px-3 py-1.5 focus:outline-none focus:border-zinc-900 tracking-wider placeholder-zinc-300 w-44 rounded-none"
-            />
-          </form>
-          <a href="/cart" className="font-medium tracking-[0.15em] text-xs uppercase text-zinc-900">Cart</a>
-        </div>
-      </header>
-
-      <main className="flex-1 pt-16">
+    <Layout cartCount={cartCount} searchTerms={searchTerms}>
         {/* 3B. Editorial Campaign Hero */}
         <section className="relative h-[85vh] bg-zinc-100 overflow-hidden group">
           <div className="absolute inset-0">
@@ -271,12 +255,12 @@ export default function HomePage() {
             <p className="font-sans text-xs md:text-sm text-white/80 mb-6 leading-relaxed max-w-sm">
               A study in architectural silhouettes, tactile fabrics, and natural muted tones.
             </p>
-            <a
-              href="/store"
+            <Link
+              to="/store"
               className="inline-block bg-white text-zinc-900 text-[10px] tracking-[0.2em] uppercase font-semibold px-6 py-3 hover:bg-zinc-900 hover:text-white transition-colors duration-300 rounded-none"
             >
               View Collection
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -314,12 +298,12 @@ export default function HomePage() {
                 <div className="p-5 flex flex-col justify-between flex-grow min-h-[120px] border-t border-zinc-100">
                   <div className="flex justify-between items-start gap-x-2">
                     <div>
-                      <a
-                        href={`/us/products/${product.slug}`}
+                      <Link
+                        to={`/us/products/${product.slug}`}
                         className="font-medium tracking-[0.1em] text-xs uppercase hover:underline text-zinc-900"
                       >
                         {product.name}
-                      </a>
+                      </Link>
                       <p className="text-[10px] text-zinc-400 mt-1 uppercase">Cotton / Wool Blend</p>
                     </div>
                     <span className="font-sans text-xs font-semibold text-zinc-900">
@@ -358,9 +342,9 @@ export default function HomePage() {
                 <p className="font-sans text-xs text-zinc-600 leading-relaxed mb-6">
                   “Aura is a space where architecture meets fabric. We eliminate the noise, strips away the superfluous, and leaves only the pure silhouette. We believe in visual clarity and the ultimate expression of material honesty.”
                 </p>
-                <a href="/store" className="text-xs uppercase font-semibold border-b border-zinc-950 pb-1 hover:opacity-60 transition-opacity">
+                <Link to="/editorial" className="text-xs uppercase font-semibold border-b border-zinc-950 pb-1 hover:opacity-60 transition-opacity">
                   Explore Editorial
-                </a>
+                </Link>
               </div>
               {/* Aspect Video (16:9) image */}
               <div className="relative aspect-video overflow-hidden bg-zinc-100">
@@ -373,12 +357,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      </main>
-
-      <footer className="bg-white border-t border-zinc-200 py-12 px-6 md:px-12 text-center text-[10px] tracking-[0.2em] uppercase text-zinc-400">
-        &copy; {new Date().getFullYear()} AURA. ALL RIGHTS RESERVED.
-      </footer>
-
       {/* support chat concierge widget */}
       <div className="fixed bottom-6 right-6 z-50">
         {!chatOpen ? (
@@ -466,6 +444,6 @@ export default function HomePage() {
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   );
 }
