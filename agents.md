@@ -152,3 +152,11 @@ You are strictly prohibited from utilizing bypass comments (`// eslint-disable-n
   5. **ONE-LINE:** Can this be written cleanly in a single line?
   6. **MINIMUM:** Only if rungs 1-5 fail, write the absolute minimum implementation that safely works.
 - **Security & Accessibility Constraint:** Trust-boundary validation (Zod), security checks, database parameters, and accessibility must never be cut. Every shortcut taken must be documented inline with a `// ponytail: <reason>` comment detailing its upgrade path.
+
+---
+
+## 7. OKF KNOWLEDGE BUNDLE MANAGEMENT
+
+1. **Context Discovery**: Before implementing any major feature updates or refactoring logic across Remix/Vendure, you MUST search the `.knowledge/` directory to read relevant structural concepts.
+2. **Graph Mutation**: When you introduce a new feature domain (e.g., adding a checkout handler), you are required to generate a new conformant OKF `.md` file inside `.knowledge/` with a valid `type` YAML header.
+3. **Cross-Linking**: Always connect files together using relative standard markdown hyperlinks (`[Label](../path.md)`). This allows `codebase-memory-mcp` to compile your changes cleanly into our local SQLite graph.

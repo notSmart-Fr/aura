@@ -25,7 +25,20 @@ const eslintConfig = [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:react-hooks/recommended"
-  )
+  ),
+
+  // Strict guardrails to prevent agent bypasses/laziness
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-ignore": "allow-with-description"
+        }
+      ]
+    }
+  }
 ];
 
 export default eslintConfig;

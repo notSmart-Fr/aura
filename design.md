@@ -129,7 +129,7 @@ A new Payload block element `AsymmetricalGrid` must be structured inside the Pay
 * **`textBlock`**: Rich text or markdown description
 * **`targetHandle`**: Medusa product/collection handle for mapping links.
 
-### B. Medusa Catalog Alignment
+### B. Catalog Alignment
 
 * Variant names (colorways, finishes) must be seeded with clean, uppercase typography labels (e.g. `SAND/BLACK`, `OFF-WHITE`) matching metadata schemas.
 * Variant displays will map directly to layout fields inside dynamic product detail views.

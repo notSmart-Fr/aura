@@ -1,8 +1,42 @@
 import { Project, SyntaxKind, Node } from "ts-morph";
 import * as path from "path";
+import { execSync } from "child_process";
+
+function verifyDomainIsolation() {
+  try {
+    const modifiedFiles = execSync("git status --porcelain", { stdio: ["pipe", "pipe", "ignore"] }).toString();
+    const domainLines = modifiedFiles
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map(line => line.replace(/^[A-Z? ]+\s+/, ""))
+      .filter(filePath => filePath.includes("apps/storefront/app/domains/"));
+
+    const modifiedDomains = new Set<string>();
+    for (const file of domainLines) {
+      const parts = file.split("apps/storefront/app/domains/");
+      if (parts.length > 1) {
+        const subParts = parts[1].split("/");
+        if (subParts.length > 0) {
+          modifiedDomains.add(subParts[0]);
+        }
+      }
+    }
+
+    if (modifiedDomains.size > 1) {
+      console.error(`❌ Domain Isolation Gate Violation:`);
+      console.error(`   Agent attempted to mutate multiple distinct domains simultaneously: [${Array.from(modifiedDomains).join(", ")}]`);
+      process.exit(1);
+    }
+  } catch (e) {
+    // Skip if git check fails
+  }
+}
 
 async function runFirewall() {
   console.log("🔥 Starting AST Security Firewall Verification Sweep...");
+  
+  verifyDomainIsolation();
 
   const project = new Project();
   
@@ -30,7 +64,7 @@ async function runFirewall() {
     }
 
     // 2. Unbound Agent Parameter Gate (Mastra Tools)
-    if (sourceFile.getFilePath().includes("app/mastra/tools")) {
+    if (sourceFile.getFilePath().includes("app/domains") && sourceFile.getFilePath().endsWith("Tool.ts")) {
       const variables = sourceFile.getVariableDeclarations();
       for (const v of variables) {
         if (v.isExported()) {
@@ -203,6 +237,61 @@ async function runFirewall() {
           if (attr.getKind() === SyntaxKind.JsxSpreadAttribute) {
             console.error(`❌ Rule 10 Serialization Gate Violation in [${relativePath}]:`);
             console.error(`   Spread operators are forbidden on component tags <${tagName} /> to prevent data exposure.`);
+            violationCount++;
+          }
+        }
+      }
+    }
+
+    // 11. Model Constraint Check (AI Model Gate)
+    const newExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression);
+    for (const ne of newExpressions) {
+      if (ne.getExpression().getText() === "Agent") {
+        const args = ne.getArguments();
+        if (args[0] && Node.isObjectLiteralExpression(args[0])) {
+          const modelProp = args[0].getProperty("model");
+          if (modelProp && Node.isPropertyAssignment(modelProp)) {
+            const val = modelProp.getInitializer()?.getText();
+            const allowedModels = ["'google/gemini-2.0-flash'", "'google/gemini-2.5-flash'"];
+            if (!allowedModels.includes(val || "")) {
+              console.error(`❌ Rule 11 Model Constraint Gate Violation in [${relativePath}]:`);
+              console.error(`   Unauthorized Model Choice [${val}]. Only gemini-2.0-flash or gemini-2.5-flash are allowed.`);
+              violationCount++;
+            }
+          }
+        }
+      }
+    }
+
+    // 12. Pragmatic Tool Contract Gate
+    for (const call of callExpressions) {
+      if (call.getExpression().getText() === "createTool") {
+        const args = call.getArguments();
+        if (args[0] && Node.isObjectLiteralExpression(args[0])) {
+          // Check tool id
+          const idProp = args[0].getProperty("id");
+          if (idProp && Node.isPropertyAssignment(idProp)) {
+            const idVal = idProp.getInitializer()?.getText()?.replace(/['"`]/g, "") || "";
+            const isValidSlug = /^[a-zA-Z0-9-_]+$/.test(idVal);
+            if (!isValidSlug) {
+              console.error(`❌ Rule 12 Tool Contract Gate Violation in [${relativePath}]:`);
+              console.error(`   Tool ID [${idVal}] must match a valid alphanumeric slug pattern.`);
+              violationCount++;
+            }
+          }
+
+          // Check tool description
+          const descProp = args[0].getProperty("description");
+          if (descProp && Node.isPropertyAssignment(descProp)) {
+            const descVal = descProp.getInitializer()?.getText()?.replace(/['"`]/g, "") || "";
+            if (descVal.length < 20) {
+              console.error(`❌ Rule 12 Tool Contract Gate Violation in [${relativePath}]:`);
+              console.error(`   Tool description is too short (${descVal.length} chars). Must be at least 20 characters.`);
+              violationCount++;
+            }
+          } else {
+            console.error(`❌ Rule 12 Tool Contract Gate Violation in [${relativePath}]:`);
+            console.error(`   Tool is missing a description property.`);
             violationCount++;
           }
         }
