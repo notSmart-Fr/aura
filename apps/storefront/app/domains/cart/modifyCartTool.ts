@@ -10,7 +10,7 @@ export const modifyCart = createTool({
   id: 'modifyCart',
   description: 'Add a specific product variant to the customer active shopping cart order',
   inputSchema: ModifyCartInputSchema,
-  execute: async ({ input }) => {
+  execute: async (input) => {
     const graphqlMutation = `
       mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
         addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {

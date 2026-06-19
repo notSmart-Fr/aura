@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent';
-import { searchCatalogTool } from '../tools/searchCatalogTool';
-import { modifyCart } from '../tools/modifyCart';
-import { showRecommendations } from '../tools/showRecommendations';
+import { searchCatalogTool } from '../../domains/catalog/searchCatalogTool';
+import { modifyCart } from '../../domains/cart/modifyCartTool';
+import { showRecommendations } from '../../domains/recommendations/showRecommendationsTool';
 
 export const shopAgent = new Agent({
   id: 'shop-curator',

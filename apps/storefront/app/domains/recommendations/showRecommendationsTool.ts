@@ -11,7 +11,7 @@ export const showRecommendations = createTool({
   id: 'showRecommendations',
   description: 'Retrieve detailed information for products to display visually in the UI recommendations drawer',
   inputSchema: ShowRecommendationsInputSchema,
-  execute: async ({ input }) => {
+  execute: async (input) => {
     const graphqlQuery = `
       query GetProducts($slugs: [String!]!) {
         products(options: { filter: { slug: { in: $slugs } } }) {

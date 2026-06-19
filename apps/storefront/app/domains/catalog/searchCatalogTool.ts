@@ -9,7 +9,7 @@ export const searchCatalogTool = createTool({
   id: 'searchCatalog',
   description: 'Search for storefront products in Vendure catalog using semantic lookups',
   inputSchema: SearchCatalogInputSchema,
-  execute: async ({ input }) => {
+  execute: async (input) => {
     const graphqlQuery = `
       query SearchCatalog($input: SearchInput!) {
         searchCatalog(input: $input) {
