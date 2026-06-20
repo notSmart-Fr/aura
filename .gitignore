@@ -59,3 +59,6 @@ yarn-error.log*
 ehthumbs.db
 Thumbs.db
 **/.DS_Store
+
+# Verification Gate Results
+.gate-results.json
