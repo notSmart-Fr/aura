@@ -1,9 +1,10 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-
+// ponytail: schema is validated dynamically by the compiler firewall 
 export const ModifyCartInputSchema = z.object({
+  idempotencyKey: z.string().uuid().describe('Unique token to prevent duplicate cart mutations'),
   productVariantId: z.string().max(255).describe('The database ID of the specific product variant to add'),
-  quantity: z.number().min(1).max(99).default(1).describe('The quantity of the item to add to the active cart order')
+  quantity: z.number().int().positive().max(99).default(1).describe('The quantity of the item to add to the active cart order')
 });
 
 export const modifyCart = createTool({

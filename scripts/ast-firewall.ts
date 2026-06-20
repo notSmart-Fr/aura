@@ -1,6 +1,7 @@
 import { Project, SyntaxKind, Node } from "ts-morph";
 import * as path from "path";
 import { execSync } from "child_process";
+import * as fs from "fs";
 
 function verifyDomainIsolation() {
   try {
@@ -39,13 +40,34 @@ async function runFirewall() {
   verifyDomainIsolation();
 
   const project = new Project();
-  
-  // Explicitly add files from the storefront application
-  project.addSourceFilesAtPaths("apps/storefront/app/**/*.ts");
-  project.addSourceFilesAtPaths("apps/storefront/app/**/*.tsx");
+  const rawTargetPath = process.argv[2];
+
+  if (rawTargetPath) {
+    const targetPath = rawTargetPath.replace(/\\/g, '/');
+    const absoluteSinglePath = path.resolve(process.cwd(), targetPath).replace(/\\/g, '/');
+    if (fs.existsSync(absoluteSinglePath)) {
+      project.addSourceFileAtPath(absoluteSinglePath);
+      console.log(`🔎 Target file provided: ${targetPath}`);
+    } else {
+      console.error(`❌ Provided target file does not exist: ${targetPath}`);
+      process.exit(1);
+    }
+  } else {
+    // Explicitly add files from the storefront application
+    project.addSourceFilesAtPaths("apps/storefront/app/**/*.ts");
+    project.addSourceFilesAtPaths("apps/storefront/app/**/*.tsx");
+  }
 
   const sourceFiles = project.getSourceFiles();
   let violationCount = 0;
+  const errors: string[] = [];
+  const originalConsoleError = console.error;
+
+  // Intercept console.error to write to .gate-results.json
+  console.error = (...args: any[]) => {
+    errors.push(args.map(a => String(a)).join(" "));
+    originalConsoleError(...args);
+  };
 
   console.log(`🔎 Found ${sourceFiles.length} source files to analyze.`);
 
@@ -83,9 +105,12 @@ async function runFirewall() {
                   while (current && current !== initializer) {
                     if (current.getKind() === SyntaxKind.CallExpression) {
                       const expr = current.getExpression();
-                      if (expr.getKind() === SyntaxKind.PropertyAccessExpression && expr.getName() === "max") {
-                        hasMax = true;
-                        break;
+                      if (expr.getKind() === SyntaxKind.PropertyAccessExpression) {
+                        const propName = expr.getName();
+                        if (propName === "max" || propName === "uuid") {
+                          hasMax = true;
+                          break;
+                        }
                       }
                     }
                     current = current.getParent();
@@ -107,7 +132,7 @@ async function runFirewall() {
                       const expr = current.getExpression();
                       if (expr.getKind() === SyntaxKind.PropertyAccessExpression) {
                         const propName = expr.getName();
-                        if (propName === "min") hasMin = true;
+                        if (propName === "min" || propName === "positive" || propName === "nonnegative") hasMin = true;
                         if (propName === "max") hasMax = true;
                       }
                     }
@@ -297,9 +322,112 @@ async function runFirewall() {
         }
       }
     }
+
+    // 13. E-commerce Idempotency and Bounds Gate
+    if (sourceFile.getFilePath().includes("app/domains") && sourceFile.getFilePath().endsWith("Tool.ts")) {
+      const isCartOrCheckout = sourceFile.getFilePath().includes("app/domains/cart/") || sourceFile.getFilePath().includes("app/domains/checkout/");
+      if (isCartOrCheckout) {
+        const variables = sourceFile.getVariableDeclarations();
+        for (const v of variables) {
+          if (v.isExported()) {
+            const name = v.getName();
+            if (name.endsWith("Schema")) {
+              const initializer = v.getInitializer();
+              if (initializer) {
+                const objectCalls = initializer.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => {
+                  return call.getExpression().getText() === "z.object";
+                });
+                
+                for (const objCall of objectCalls) {
+                  const args = objCall.getArguments();
+                  if (args[0] && Node.isObjectLiteralExpression(args[0])) {
+                    const objLiteral = args[0];
+                    const properties = objLiteral.getProperties();
+                    let hasIdempotencyKey = false;
+                    
+                    for (const prop of properties) {
+                      if (Node.isPropertyAssignment(prop)) {
+                        const propName = prop.getName();
+                        const propInit = prop.getInitializer();
+                        
+                        // Rule A: Idempotency Key Validation
+                        if (propName === "idempotencyKey") {
+                          const chainText = propInit?.getText() || "";
+                          const hasZodString = chainText.includes("z.string");
+                          const hasUuid = chainText.includes(".uuid");
+                          if (hasZodString && hasUuid) {
+                            hasIdempotencyKey = true;
+                          }
+                        }
+                        
+                        // Rule B: Quantity Bounds and Integer Enforce
+                        if (/quantity|qty/i.test(propName)) {
+                          const propInitText = propInit?.getText() || "";
+                          if (propInitText.includes("z.number") || propInitText.includes("z.integer")) {
+                            const propAccesses = propInit?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression) || [];
+                            const methodNames = propAccesses.map(pa => pa.getName());
+                            const hasInt = methodNames.includes("int") || methodNames.includes("integer");
+                            const hasPositive = methodNames.includes("positive");
+                            
+                            const hasMax99 = propAccesses.some(pa => {
+                              if (pa.getName() === "max") {
+                                const call = pa.getParentIfKind(SyntaxKind.CallExpression);
+                                if (call) {
+                                  const callArgs = call.getArguments();
+                                  return callArgs[0]?.getText() === "99";
+                                }
+                              }
+                              return false;
+                            });
+                            
+                            if (!hasInt || !hasPositive) {
+                              console.error(`❌ Rule 13 Quantity Constraint Violation in [${relativePath}]:`);
+                              console.error(`   Quantity property [${propName}] in [${name}] must enforce integer and positive constraints using .int().positive().`);
+                              violationCount++;
+                            }
+                            if (!hasMax99) {
+                              console.error(`❌ Rule 13 Quantity Constraint Violation in [${relativePath}]:`);
+                              console.error(`   Quantity property [${propName}] in [${name}] must enforce an upper limit of 99 using .max(99).`);
+                              violationCount++;
+                            }
+                          }
+                        }
+                        
+                        // Rule C: Client-Side Price Tampering Vector Prevention
+                        if (/price|amount/i.test(propName)) {
+                          console.error(`❌ Rule 13 Price Tampering Violation in [${relativePath}]:`);
+                          console.error(`   Price/amount property [${propName}] in [${name}] is forbidden. Prices must only be resolved backend-side.`);
+                          violationCount++;
+                        }
+                      }
+                    }
+                    
+                    if (!hasIdempotencyKey) {
+                      console.error(`❌ Rule 13 Idempotency Violation in [${relativePath}]:`);
+                      console.error(`   Cart/checkout tool input schema [${name}] is missing an 'idempotencyKey' validation of type z.string().uuid().`);
+                      violationCount++;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
-  if (violationCount > 0) {
+  // Restore console.error
+  console.error = originalConsoleError;
+
+  const passed = violationCount === 0;
+  fs.writeFileSync(".gate-results.json", JSON.stringify({
+    passed,
+    errors: passed ? null : errors,
+    timestamp: Date.now()
+  }, null, 2));
+
+  if (!passed) {
     console.error(`\n🚨 BUILD BLOCKED: ${violationCount} structural security violations found.`);
     process.exit(1);
   } else {

@@ -1,83 +1,75 @@
-<!-- markdownlint-disable MD033 -->
 # Aura: High-Performance Agent-Native Commerce Sandbox
 
-This repository isolates and demonstrates our core architectural pillars across two distinct development phases. Click the dropdown accordions below to explore the technical case studies, system metrics, and static analysis configurations for each ecosystem.
+Aura is a transaction-safe, type-safe, and token-efficient headless commerce storefront built on a unified GraphQL commerce API and an autonomous AI agent orchestration loop.
 
 ---
 
-## 🛠️ Select System Architecture Version
+## 📐 System Architecture
 
-<details>
-<summary><b>📐 PHASE 1: Distributed Prototype (Next.js + Medusa V2 + Payload CMS)</b></summary>
+This project is a standalone enterprise-grade e-commerce stack integrating:
 
-### Phase 1 System Architecture Overview
+- **Framework Layer:** Remix Vite Engine (unified server-to-browser execution and type safety).
+- **AI Agent Orchestration:** Mastra Core (autonomous ReAct agent loops and structured tools).
+- **Commerce Engine:** Vendure Headless GraphQL Commerce Core.
+- **Database Layer:** Neon Postgres with `pgvector` for catalog embeddings and semantic search.
 
-This phase explores the loose integration of a fragmented full-stack setup, focusing on multi-hop asynchronous ingestion engines, distributed transaction hooks, and custom token-slicing window middleware.
+---
 
-* **Framework Layer:** Next.js App Router (Client-Side State Slicing)
-* **Commerce Foundation:** Medusa V2 REST Core + Payload CMS
-* **Full Case Study Documentation:** [View Phase 1 Deep-Dive File](./README.phase1-medusa.md)
+## 🛠️ Operational Workflow (Passive Verification Loop)
 
-</details>
+To prevent execution hangs and terminal blocking during agent-driven development, the codebase utilizes a **Passive Verification Gateway**:
 
-<details open>
-<summary><b>🚀 PHASE 2: Enterprise Graph Stack (Remix + Mastra Core + Vendure Backend) [CURRENT]</b></summary>
-
-### Phase 2 System Architecture Overview
-
-This phase collapses our core components down into an integrated, transaction-safe, token-efficient data graph. Development is driven by **Google's Antigravity** coding assistant under a fully agent-native architecture: an `AGENTS.md` system handbook drives deterministic behavior, while on-demand `.agent/skills/` context files load domain rules only when relevant to the active task. All business rules and inventory operations are isolated behind a unified GraphQL gateway, utilizing Remix server gates to enforce strict type-safe execution loops.
-
-* **Development Engine:** Google's Antigravity (Advanced Agentic Coding Assistant)
-* **Orchestration Pattern:** ReAct (Reasoning and Acting) via Mastra Agents
-* **Knowledge Retrieval:** Advanced RAG (Retrieval-Augmented Generation) Engineering
-* **Framework Layer:** Remix Vite Engine (Unified Server-to-Browser Type Loops)
-* **AI Orchestration:** Mastra Tools + DeepSeek-V3 Engine
-* **Commerce Foundation:** Vendure Headless GraphQL Core (TypeORM + Neon Postgres `pgvector`)
-* **AST Security:** Custom ts-morph build-time compiler firewalls (`scripts/ast-firewall.ts`) targeting isolated tool schema definitions.
-* **Agent Architecture:** `AGENTS.md` global system handbook + `.agent/skills/` on-demand context files.
-* **Full Case Study Documentation:** [View Phase 2 Deep-Dive File](./README.phase2-remix.md)
-
-### Quick Start (Current Stack)
-
-1. **Install Dependencies**
-
-   ```bash
-   pnpm install
-   ```
-
-2. **Run in Separate Terminals**
-
-   To run the backend and storefront services in separate terminals, execute the following commands from the root directory:
-
-   * **Terminal 1 (Backend):**
-
-     ```bash
-     pnpm run backend:dev
-     ```
-
-   * **Terminal 2 (Storefront):**
-
-     ```bash
-     pnpm run storefront:dev
-     ```
-
-3. **Verify Agent Compliance**
-
-   Run the full ts-morph AST security sweep and type checks before declaring any implementation complete:
+1. **Development Watcher**: A background file watcher runs locally in the interactive IDE terminal:
 
    ```bash
    pnpm verify-agent
    ```
 
-4. **Agent Skills Workflow**
+2. **On-Save Compilation Sweep**: When a domain file is modified and saved, `chokidar-cli` captures the save event and triggers the compiler firewall (`scripts/ast-firewall.ts`) on the updated file.
+3. **Out-of-Band State Gate**: The sweep compiles results and writes them to [`.gate-results.json`](file:///i:/aura/.gate-results.json).
+4. **Agent Accountable Integrity**: The agent reads the timestamp and status directly from `.gate-results.json` to verify compilation and guardrail compliance before finalizing any task.
 
-   Before starting any plan, the agent reads frontmatter descriptions from `.agent/skills/` and loads only the relevant domain context:
+---
 
-   | Skill file | Activates when... |
-   | ---------- | ----------------- |
-   | `.agent/skills/csv-ingestion.md` | Writing seeders, parsing CSV files, or bulk data imports |
-   | `.agent/skills/product-topography.md` | Creating or modifying Vendure product variants or option matrices |
-   | `.agent/skills/react-orchestration.md` | Building Mastra agents, workflows, or ReAct tool-calling loops |
-   | `.agent/skills/rag-pipeline.md` | Building semantic search, vector chunking, or RAG context retrieval |
+## 🔒 AST Compiler Firewall Rules
 
-</details>
+All structural guidelines and boundaries are programmatically checked via custom static analysis (`ts-morph`) in [ast-firewall.ts](file:///i:/aura/scripts/ast-firewall.ts). The firewall evaluates thirteen structural gates:
+
+1. **GraphQL Client Isolation**: Storefront routes are prohibited from importing backend database drivers or services directly; all data passes through the GraphQL client or Mastra tools.
+2. **Unbound Mastra Tool Parameters**: Tool schemas in `app/domains/` must export input schemas ending in `Schema`, enforcing strict size constraints (`.max()` for strings, `.min()` or `.positive()` and `.max()` for numbers).
+3. **Unauthenticated Remix Actions**: Every HTTP POST action in storefront routes must perform session/authentication validation.
+4. **Webhook Signature Validation**: Webhook endpoints must check signature headers (`x-vendure-signature`) to protect against event replay attacks.
+5. **AI Concurrency Limit**: AI embeddings and Gemini client loops must be batched/throttled instead of wrapped in plain, unthrottled `Promise.all` maps.
+6. **Controlled Form Inputs**: Raw `onChange` listeners on standard `<input>` tags must have debounced/value bindings to prevent search flood vectors.
+7. **Stream Sanitization**: LLM generation output must be parsed and sanitized with `validateAndFilterOutput`.
+8. **Process.Env Access Block**: Direct referencing of `process.env.*` in client components or tools is forbidden to prevent context exposure leaks.
+9. **Telemetry Anonymization**: Database hashes or primary identifiers must be stripped before being passed to tracking events.
+10. **Banned Jsx Spreads**: Spread operators (`{...props}`) are prohibited on custom component tags to prevent implicit data exposures.
+11. **AI Model Constraint**: Mastra Agents are restricted to validated models (`google/gemini-2.0-flash` or `google/gemini-2.5-flash`).
+12. **Mastra Tool Metadata**: All created tools must have a precise alphanumeric `id` and a detailed description of at least 20 characters.
+13. **E-commerce Security & Idempotency**:
+    - State-mutating tools inside `domains/cart/` and `domains/checkout/` must include `idempotencyKey: z.string().uuid()`.
+    - Quantity properties must enforce positive integer types (`.int().positive()`) and a maximum limit of `.max(99)`.
+    - Direct `price` or `amount` inputs in client-facing tool schemas are strictly forbidden (prices must resolve exclusively on the backend).
+
+---
+
+## 📁 Data-Forward Domain Structure
+
+The monorepo organizes commerce boundaries cleanly inside self-contained domain folders:
+
+```text
+apps/storefront/app/
+├── routes/                               <-- Pure Routing Wire (Thin)
+│   ├── _index.tsx
+│   └── api.webhook.ts
+└── domains/                              <-- Self-Contained Data Leaf Nodes
+    ├── catalog/
+    │   ├── searchCatalogTool.ts          <-- Mastra Tool
+    │   ├── catalog.component.tsx         <-- Remix Presentation Layer
+    │   └── catalog.queries.ts            <-- Vendure GraphQL Client Queries
+    ├── cart/
+    │   └── modifyCartTool.ts
+    └── recommendations/
+        └── showRecommendationsTool.ts
+```

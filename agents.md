@@ -109,19 +109,20 @@ When implementing visual elements or rendering catalog query results inside tran
 
 ## 5. VERIFICATION GATEWAY
 
-Before concluding your turn or declaring an implementation complete, you must run the structural and semantic compilation firewall:
+This project uses a passive verification execution model. When you save a file, the background file watcher automatically triggers the AST firewall sweep and writes the results to `.gate-results.json` at the root of the workspace.
 
-```bash
-pnpm verify-agent
-```
+Before concluding your turn or declaring an implementation complete, you must:
 
-This command executes the full ts-morph AST security sweep across all storefront source files and `tsc --noEmit` type checks. If it throws any validation errors, you must:
+1. Open and read `.gate-results.json` to verify that the verification gate has passed (`"passed": true`).
+2. If `"passed": false`, read the structural error array, fix the violations locally, save the file to trigger the watcher, and re-read `.gate-results.json`.
+3. You are strictly prohibited from executing terminal commands, bash workflows, or manual verification scripts yourself.
 
-1. Read the terminal output log carefully.
-2. Self-correct your files locally within the violating leaf node.
-3. Re-run `pnpm verify-agent` until it exits successfully with code `0`.
+### Verification Freshness Check
 
-You are strictly prohibited from utilizing bypass comments (`// eslint-disable-next-line`) to circumvent compilation checks. You are strictly prohibited from modifying `eslint.config.mjs` or `scripts/ast-firewall.ts` unless explicitly requested.
+When you read `.gate-results.json` to check if your code passes the architectural gates, you MUST verify the `timestamp` property inside the JSON payload.
+
+- If the timestamp is older than your current task initiation time, the background watcher was offline when you saved.
+- You must ask the user to restart the watcher (`pnpm verify-agent`) or make a dummy whitespace edit and resave the file to force a fresh file-system state change.
 
 ---
 
