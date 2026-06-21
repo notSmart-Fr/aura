@@ -39,11 +39,18 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
   verifyDomainIsolation();
 
   const project = new Project();
+  const isChaos = process.argv.includes("--chaos");
 
-  if (targetPath) {
+  if (isChaos) {
+    console.log("☣️ Running Chaos Test Suite Verification...");
+    project.addSourceFilesAtPaths("scripts/chaos-tests/**/*.ts");
+    project.addSourceFilesAtPaths("scripts/chaos-tests/**/*.tsx");
+  } else if (targetPath) {
     const normPath = targetPath.replace(/\\/g, '/');
     const absoluteSinglePath = path.resolve(process.cwd(), normPath).replace(/\\/g, '/');
     if (fs.existsSync(absoluteSinglePath)) {
+      const existing = project.getSourceFile(absoluteSinglePath);
+      if (existing) project.removeSourceFile(existing);
       project.addSourceFileAtPath(absoluteSinglePath);
       console.log(`🔎 Target file provided: ${normPath}`);
     } else {
@@ -55,6 +62,8 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.ts");
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.tsx");
     if (fs.existsSync("scripts/worker.ts")) {
+      const existing = project.getSourceFile(path.resolve(process.cwd(), "scripts/worker.ts"));
+      if (existing) project.removeSourceFile(existing);
       project.addSourceFileAtPath("scripts/worker.ts");
     }
   }
@@ -98,7 +107,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
               const callExpressions = initializer.getDescendantsOfKind(SyntaxKind.CallExpression);
               for (const call of callExpressions) {
                 const callText = call.getText();
-                
+
                 // String constraint check (.max)
                 if (call.getExpression().getText() === "z.string") {
                   let current: any = call;
@@ -338,19 +347,19 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                 const objectCalls = initializer.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => {
                   return call.getExpression().getText() === "z.object";
                 });
-                
+
                 for (const objCall of objectCalls) {
                   const args = objCall.getArguments();
                   if (args[0] && Node.isObjectLiteralExpression(args[0])) {
                     const objLiteral = args[0];
                     const properties = objLiteral.getProperties();
                     let hasIdempotencyKey = false;
-                    
+
                     for (const prop of properties) {
                       if (Node.isPropertyAssignment(prop)) {
                         const propName = prop.getName();
                         const propInit = prop.getInitializer();
-                        
+
                         // Rule A: Idempotency Key Validation
                         if (propName === "idempotencyKey") {
                           const chainText = propInit?.getText() || "";
@@ -360,7 +369,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                             hasIdempotencyKey = true;
                           }
                         }
-                        
+
                         // Rule B: Quantity Bounds and Integer Enforce
                         if (/quantity|qty/i.test(propName)) {
                           const propInitText = propInit?.getText() || "";
@@ -369,7 +378,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                             const methodNames = propAccesses.map(pa => pa.getName());
                             const hasInt = methodNames.includes("int") || methodNames.includes("integer");
                             const hasPositive = methodNames.includes("positive");
-                            
+
                             const hasMax99 = propAccesses.some(pa => {
                               if (pa.getName() === "max") {
                                 const call = pa.getParentIfKind(SyntaxKind.CallExpression);
@@ -380,7 +389,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                               }
                               return false;
                             });
-                            
+
                             if (!hasInt || !hasPositive) {
                               console.error(`❌ Rule 13 Quantity Constraint Violation in [${relativePath}]:`);
                               console.error(`   Quantity property [${propName}] in [${name}] must enforce integer and positive constraints using .int().positive().`);
@@ -393,7 +402,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                             }
                           }
                         }
-                        
+
                         // Rule C: Client-Side Price Tampering Vector Prevention
                         if (/price|amount/i.test(propName)) {
                           console.error(`❌ Rule 13 Price Tampering Violation in [${relativePath}]:`);
@@ -402,7 +411,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                         }
                       }
                     }
-                    
+
                     if (!hasIdempotencyKey) {
                       console.error(`❌ Rule 13 Idempotency Violation in [${relativePath}]:`);
                       console.error(`   Cart/checkout tool input schema [${name}] is missing an 'idempotencyKey' validation of type z.string().uuid().`);
@@ -422,7 +431,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
       const expText = call.getExpression().getText();
       const isFetch = expText === "fetch" || expText.endsWith(".fetch");
       const isAxios = expText === "axios" || expText.startsWith("axios.") || expText.includes(".axios");
-      
+
       if (isFetch || isAxios) {
         // A. Verify they are nested within a Zod .parse() node
         let currentParent: Node | undefined = call.getParent();
@@ -521,7 +530,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                 } else {
                   isGraphQLMutation = true;
                 }
-                
+
                 if (methodVal === "POST" && !isGraphQLMutation) {
                   isMutating = false;
                 } else {
@@ -576,9 +585,9 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
           console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
           console.error(`   Mutating network request [${call.getText().substring(0, 40)}...] must provide a config object passing 'Idempotency-Key' in headers.`);
           violationCount++;
+        }
       }
     }
-  }
 
     // 15. Ingestion Worker Normalization Gate (scripts/worker.ts)
     if (relativePath.replace(/\\/g, "/") === "scripts/worker.ts") {
@@ -647,7 +656,7 @@ async function main() {
 
   if (isWatch) {
     console.log("🔥 Starting AST Security Firewall Watcher...");
-    
+
     // Initial full sweep on startup
     await executeSweep();
 

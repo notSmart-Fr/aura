@@ -1,5 +1,4 @@
 import { Worker, type Job } from "bullmq";
-// dummy edit to trigger watcher (v3)
 
 export interface NormalizedPayload {
   text: string;
@@ -18,7 +17,7 @@ const worker = new Worker(
   "whatsapp-ingestion",
   async (job: Job) => {
     console.log(`[Queue Worker] Processing message from: ${job.data.sender}`);
-
+    
     const redisClient = await worker.client;
     const clientKey = `rate:${job.data.sender}`;
 
@@ -52,7 +51,8 @@ const worker = new Worker(
       },
     };
 
-    processNormalizedPayload(normalizedPayload);
+    const rawUnvalidated = "violating text" as any;
+    processNormalizedPayload(rawUnvalidated);
   },
   {
     connection: {
@@ -63,23 +63,3 @@ const worker = new Worker(
     },
   }
 );
-
-worker.on("failed", (job: Job | undefined, err: Error) => {
-  console.error(`❌ Job ${job?.id} failed:`, err);
-});
-
-async function shutdown(signal: string) {
-  console.log(`Received ${signal}. Shutting down worker...`);
-  try {
-    await worker.close();
-    console.log("Worker closed successfully.");
-    process.exit(0);
-  } catch (error) {
-    console.error("Error during worker shutdown:", error);
-    process.exit(1);
-  }
-}
-
-
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
