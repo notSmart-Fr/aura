@@ -29,7 +29,6 @@ Before generating any Plan or modifying code, execute an automated search on the
 2. If your current objective matches a description, load that specific skill markdown file into your active memory context.
 3. If no skills match, drop the directory context entirely to maximize token space.
 
-
 ---
 
 ## 2. FILE MANAGEMENT & DOMAIN LOCALITY BLUEPRINT

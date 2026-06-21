@@ -684,6 +684,27 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         }
       }
     }
+
+    // 18. Telemetry Data Leakage Prevention Gate (scripts/worker.ts)
+    if (relativePath.replace(/\\/g, "/") === "scripts/worker.ts") {
+      for (const call of callExpressions) {
+        const propAccess = call.getExpression();
+        if (Node.isPropertyAccessExpression(propAccess)) {
+          const propName = propAccess.getName();
+          if (propName === "setAttribute") {
+            const args = call.getArguments();
+            if (args.length > 0) {
+              const keyVal = args[0].getText().toLowerCase().replace(/['"`]/g, "");
+              if (/(phone|sender|text|message)/.test(keyVal)) {
+                console.error(`❌ Rule 18 Telemetry Data Leakage Prevention Gate Violation in [${relativePath}]:`);
+                console.error(`   Forbidden attribute key [${keyVal}] containing sensitive info was used on OpenTelemetry span.`);
+                violationCount++;
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
 

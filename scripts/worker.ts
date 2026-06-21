@@ -1,5 +1,8 @@
 import { Worker, type Job } from "bullmq";
-// dummy edit to trigger watcher (v3)
+import { trace, type Span } from "@opentelemetry/api";
+import { getSemanticCache } from "../apps/storefront/app/domains/ai-cache/cache-engine.server";
+
+const tracer = trace.getTracer("whatsapp-worker");
 
 export interface NormalizedPayload {
   text: string;
@@ -22,13 +25,25 @@ const worker = new Worker(
     const redisClient = await worker.client;
     const clientKey = `rate:${job.data.sender}`;
 
-    // Atomic operations directly on local hardware memory
-    const currentRequests = await redisClient.incr(clientKey);
-    if (currentRequests === 1) {
-      await redisClient.expire(clientKey, 10);
-    }
+    let isBlocked = false;
+    // Rate Limiter Tracer Span
+    await tracer.startActiveSpan("rate-limiter", async (span: Span) => {
+      span.setAttribute("system.operation", "rate-limit");
+      span.setAttribute("redis.key_prefix", "rate");
 
-    if (currentRequests > 5) {
+      const currentRequests = await redisClient.incr(clientKey);
+      if (currentRequests === 1) {
+        await redisClient.expire(clientKey, 10);
+      }
+      span.setAttribute("requests.count", currentRequests);
+
+      if (currentRequests > 5) {
+        isBlocked = true;
+      }
+      span.end();
+    });
+
+    if (isBlocked) {
       console.warn(`⚠️ [Rate Limiter] Blocked spam payload from: ${job.data.sender}`);
       return; // Clean drop out-of-band
     }
@@ -51,6 +66,22 @@ const worker = new Worker(
         timestamp: Date.now(),
       },
     };
+
+    // Cache lookup Tracer Span
+    await tracer.startActiveSpan("cache-lookup", async (span: Span) => {
+      span.setAttribute("system.operation", "cache-query");
+      span.setAttribute("payload.length", normalizedPayload.text.length);
+
+      const cachedResponse = await getSemanticCache(normalizedPayload.text);
+      if (cachedResponse) {
+        span.setAttribute("cache.hit", true);
+        console.log(`[Queue Worker] Semantic cache hit!`);
+      } else {
+        span.setAttribute("cache.hit", false);
+        console.log(`[Queue Worker] Semantic cache miss.`);
+      }
+      span.end();
+    });
 
     processNormalizedPayload(normalizedPayload);
   },

@@ -54,6 +54,47 @@ All structural guidelines and boundaries are programmatically checked via custom
 14. **Storefront Network Isolation**:
     - Raw unvalidated network payloads (`fetch`, `axios`) are forbidden; all network calls must be wrapped inside a structural Zod schema validation node (e.g. `Schema.parse()`).
     - Mutating outbound network calls must explicitly declare an `'Idempotency-Key'` header assigned to a unique UUID.
+15. **Ingestion Worker Normalization**: Downstream ingestion payload processors must consume strictly structured `NormalizedPayload` types.
+16. **Cosine Similarity Distance Query**: Queries targeting the `cache_embeddings` semantic database table must execute similarity distance matches utilizing the native pgvector `<=>` operator.
+17. **Context-Window Cache Optimization**: Tail-volatile user prompt variables must be appended at the absolute suffix of dynamic template string statements to maximize caching performance.
+18. **Telemetry Data Leakage Prevention**: Tracing span attribute setters (`.setAttribute`) inside worker environments must not record keys containing sensitive terms (`phone`, `sender`, `text`, `message`).
+
+---
+
+## ⚡ Asynchronous Ingestion & Telemetry Pipeline
+
+```text
+[CHAOTIC DATA INPUTS]
+  (WhatsApp Text, Audio, Images)
+            │
+            ▼
+┌──────────────────────────────────────┐
+│ 1. Remix API Webhook Route           │ ── (Goal 1: Instant network response)
+└──────────────────────────────────────┘
+            │
+            ▼ [BullMQ Out-of-Band Queue]
+┌──────────────────────────────────────┐
+│ 2. Redis Token Bucket Limit Gate     │ ── (Goal 3: Discards spam at perimeter)
+└──────────────────────────────────────┘
+            │
+            ▼ [Passes Rate Limit]
+┌──────────────────────────────────────┐
+│ 3. Multi-Modal Normalization Layer   │ ── (Goal 2: Flattens inputs to Markdown)
+└──────────────────────────────────────┘
+            │
+            ▼ [Unified NormalizedPayload]
+┌──────────────────────────────────────┐
+│ 4. Neon Cloud pgvector Hot Cache     │ ── (Goal 4: 95% Match? Skips LLM entirely)
+└──────────────────────────────────────┘
+            │
+            ▼ [Cache Miss]
+┌──────────────────────────────────────┐
+│ 5. Optimized Prompt Frame Block      │ ── (Goal 5: Tail-volatile context cache)
+└──────────────────────────────────────┘
+```
+
+- **Distributed Telemetry:** Every single transaction through the worker pipeline emits anonymized OpenTelemetry span context traces (`rate-limiter`, `cache-lookup`) to enable centralized latency diagnostics.
+- **Anonymization Guard:** The pipeline strictly prevents user-identifiable properties (e.g. phone numbers, raw message payloads) from escaping into the telemetry logging subsystem.
 
 ---
 

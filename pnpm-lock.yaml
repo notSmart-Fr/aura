@@ -20,6 +20,9 @@ importers:
 
   .:
     dependencies:
+      '@opentelemetry/api':
+        specifier: ^1.9.0
+        version: 1.9.1
       bullmq:
         specifier: ^4.17.0
         version: 4.18.3
