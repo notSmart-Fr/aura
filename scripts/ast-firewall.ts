@@ -191,6 +191,17 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
       }
     }
 
+    if (sourceFile.getFilePath().endsWith("api.webhook.whatsapp.ts")) {
+      const fileText = sourceFile.getText();
+      const hasZodParse = /\.parse\(|\.safeParse\(/.test(fileText);
+      const hasQueueAdd = /ingestionQueue\.add/.test(fileText);
+      if (!hasZodParse || !hasQueueAdd) {
+        console.error(`❌ WhatsApp Webhook Schema Gate Violation in [${relativePath}]:`);
+        console.error(`   WhatsApp webhook route must parse the payload using Zod before queue dispatching.`);
+        violationCount++;
+      }
+    }
+
     // 5. Mastra Workflow Concurrency Gate
     const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
     for (const call of callExpressions) {
@@ -288,7 +299,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
           const modelProp = args[0].getProperty("model");
           if (modelProp && Node.isPropertyAssignment(modelProp)) {
             const val = modelProp.getInitializer()?.getText();
-            const allowedModels = ["'google/gemini-2.0-flash'", "'google/gemini-2.5-flash'"];
+            const allowedModels = ["'google/gemini-2.0-flash'", "'google/gemini-2.5-flash'", "'deepseek-chat'", "'deepseek/deepseek-chat'", "deepseek('deepseek-chat')"];
             if (!allowedModels.includes(val || "")) {
               console.error(`❌ Rule 11 Model Constraint Gate Violation in [${relativePath}]:`);
               console.error(`   Unauthorized Model Choice [${val}]. Only gemini-2.0-flash or gemini-2.5-flash are allowed.`);

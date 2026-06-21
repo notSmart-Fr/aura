@@ -1,6 +1,38 @@
 import { Worker, type Job } from "bullmq";
 import { trace, type Span } from "@opentelemetry/api";
-import { getSemanticCache } from "../apps/storefront/app/domains/ai-cache/cache-engine.server";
+import { z } from "zod";
+import Redis from "ioredis";
+import fs from "fs";
+import path from "path";
+
+// Initialize Redis Pub/Sub publisher client
+const redisPublisher = new Redis({
+  host: "127.0.0.1",
+  port: 6379,
+});
+
+// Load .env manually to ensure DB credentials are ready before domains are imported
+try {
+  const envPath = path.resolve(process.cwd(), "apps/storefront/.env");
+  if (fs.existsSync(envPath)) {
+    const envConfig = fs.readFileSync(envPath, "utf8");
+    for (const line of envConfig.split(/\r?\n/)) {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (match) {
+        const key = match[1];
+        let val = match[2] || "";
+        if (val.startsWith('"') && val.endsWith('"')) {
+          val = val.substring(1, val.length - 1);
+        } else if (val.startsWith("'") && val.endsWith("'")) {
+          val = val.substring(1, val.length - 1);
+        }
+        process.env[key] = val.trim();
+      }
+    }
+  }
+} catch (e) {
+  console.warn("Failed to load .env file:", e);
+}
 
 const tracer = trace.getTracer("whatsapp-worker");
 
@@ -11,10 +43,50 @@ export interface NormalizedPayload {
     sender: string;
     timestamp: number;
   };
+  cachedResponse?: any;
 }
 
-function processNormalizedPayload(payload: NormalizedPayload) {
+async function processNormalizedPayload(payload: NormalizedPayload) {
   console.log(`[Queue Worker] Forwarded normalized payload to AI:`, payload);
+
+  let responseText = "";
+  const cachedResponse = payload.cachedResponse;
+
+  if (cachedResponse) {
+    // Cache Hit branch
+    console.log(`[Queue Worker] Bypassing AI loop. Using cached response.`);
+    responseText = cachedResponse.text || cachedResponse.response || String(cachedResponse);
+  } else {
+    // Cache Miss branch
+    console.log(`[Queue Worker] Triggering shopAgent...`);
+    
+    // Dynamically import cache engine and shopAgent
+    const { setSemanticCache, getEmbedding } = await import("../apps/storefront/app/domains/ai-cache/cache-engine.server");
+    const { shopAgent } = await import("../apps/storefront/app/mastra/agents/shopAgent");
+
+    const result = await shopAgent.generate(payload.text);
+    if (result.steps.length >= 5 && result.finishReason !== "stop") {
+      responseText = "Unable to resolve your request. A team member will follow up.";
+    } else {
+      responseText = result.text;
+    }
+
+    console.log(`[Queue Worker] Generating embedding coordinates for new query...`);
+    const embedding = await getEmbedding(payload.text);
+
+    console.log(`[Queue Worker] Writing new vector response to Neon Database cache...`);
+    await setSemanticCache(payload.text, embedding, { text: responseText });
+  }
+
+  // Publish to wa_outbound channel
+  await redisPublisher.publish(
+    "wa_outbound",
+    JSON.stringify({
+      recipientId: payload.metadata.sender,
+      text: responseText,
+    })
+  );
+  console.log(`[Queue Worker] Published outbound response to wa_outbound.`);
 }
 
 const worker = new Worker(
@@ -68,11 +140,13 @@ const worker = new Worker(
     };
 
     // Cache lookup Tracer Span
+    let cachedResponse: any = null;
     await tracer.startActiveSpan("cache-lookup", async (span: Span) => {
       span.setAttribute("system.operation", "cache-query");
       span.setAttribute("payload.length", normalizedPayload.text.length);
 
-      const cachedResponse = await getSemanticCache(normalizedPayload.text);
+      const { getSemanticCache } = await import("../apps/storefront/app/domains/ai-cache/cache-engine.server");
+      cachedResponse = await getSemanticCache(normalizedPayload.text);
       if (cachedResponse) {
         span.setAttribute("cache.hit", true);
         console.log(`[Queue Worker] Semantic cache hit!`);
@@ -83,7 +157,8 @@ const worker = new Worker(
       span.end();
     });
 
-    processNormalizedPayload(normalizedPayload);
+    normalizedPayload.cachedResponse = cachedResponse;
+    await processNormalizedPayload(normalizedPayload);
   },
   {
     connection: {
@@ -92,6 +167,10 @@ const worker = new Worker(
       maxRetriesPerRequest: null,
       enableOfflineQueue: false,
     },
+    limiter: {
+      max: 1,
+      duration: 4000
+    }
   }
 );
 
@@ -110,7 +189,6 @@ async function shutdown(signal: string) {
     process.exit(1);
   }
 }
-
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));

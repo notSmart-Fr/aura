@@ -16,7 +16,7 @@ const OllamaResponseSchema = z.object({
   embedding: z.array(z.number())
 });
 
-async function getEmbedding(text: string): Promise<number[]> {
+export async function getEmbedding(text: string): Promise<number[]> {
   const cleanText = text.replace(/\s+/g, ' ').trim();
   
   // Entire fetch call is wrapped/nested directly within the Zod .parse() statement to satisfy Rule 14 AST gate

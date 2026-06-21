@@ -15,6 +15,16 @@ This project is a standalone enterprise-grade e-commerce stack integrating:
 
 ---
 
+## ⚡ Zero-Allocation Semantic Cache Layer
+
+To maximize performance and eliminate redundant LLM API costs, the storefront implements a high-performance **Zero-Allocation Semantic Cache Layer** (colocated in `apps/storefront/app/domains/ai-cache/`):
+
+- **Separation of Concerns**: Embedding generation (via local Ollama vectors) is separated from text generation/LLM loops.
+- **Multi-Dimensional Vector Geometry**: Queries are converted into 384-dimension vectors and evaluated against the Neon Postgres cache using native `pgvector` cosine similarity (`<=>`).
+- **Instant Miss/Hit Interception**: Repetitive and semantically close queries ($distance < 0.05$) are matched and returned directly from Neon in milliseconds, completely bypassing external LLM APIs and local compute cycles.
+
+---
+
 ## 🛠️ Operational Workflow (Passive Verification Loop)
 
 To prevent execution hangs and terminal blocking during agent-driven development, the codebase utilizes a **Passive Verification Gateway**:
@@ -95,6 +105,124 @@ All structural guidelines and boundaries are programmatically checked via custom
 
 - **Distributed Telemetry:** Every single transaction through the worker pipeline emits anonymized OpenTelemetry span context traces (`rate-limiter`, `cache-lookup`) to enable centralized latency diagnostics.
 - **Anonymization Guard:** The pipeline strictly prevents user-identifiable properties (e.g. phone numbers, raw message payloads) from escaping into the telemetry logging subsystem.
+
+### 🧠 The Core Message Processing Blueprint
+
+When an inbound job pops off the queue, the worker routes it through the following logical pipeline:
+
+```text
+                  ┌───────────────────────────────────┐
+                  │       INBOUND QUEUE EVENT         │
+                  │   "Do you have green linen?"      │
+                  └─────────────────┬─────────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │   Ollama Local Embedding     │
+                     │  (Generate Text Vector)      │
+                     └──────────────┬───────────────┘
+                                    │
+                                    ▼
+                     ┌──────────────────────────────┐
+                     │     Neon Cloud DB Lookup     │
+                     │  (Cosine Similarity Match)   │
+                     └──────────────┬───────────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ▼ Cache Hit                     ▼ Cache Miss
+         ┌─────────────────────┐         ┌─────────────────────────────┐
+         │  Fetch Saved Answer │         │   Trigger Gemini Pro API    │
+         │   From PostgreSQL   │         │  (Inject Store Inventory)   │
+         └──────────┬──────────┘         └──────────────┬──────────────┘
+                    │                                   │
+                    │                                   ▼
+                    │                        ┌─────────────────────┐
+                    │                        │ Save New Vector to  │
+                    │                        │    Neon Database    │
+                    │                        └──────────┬──────────┘
+                    │                                   │
+                    └───────────────────┬───────────────┘
+                                        │
+                                        ▼
+                        ┌──────────────────────────────┐
+                        │   Redis Pub/Sub Broadcast    │
+                        │    Outbound Message Event    │
+                        └──────────────────────────────┘
+```
+
+- **Vector Conversion**: The inbound text query is sent to the local Ollama embedding generator to compute its high-dimensional vector coordinates.
+- **Neon Cloud DB Lookup**: An HNSW cosine similarity query is run against the Neon database using the `pgvector` operator (`<=>`) to check for semantically close historical entries.
+- **Conditional Branches**:
+  - **Cache Hit**: If a semantic match exists within the threshold ($distance < 0.05$), the worker retrieves the cached response immediately, bypassing LLM compute cycles entirely.
+  - **Cache Miss**: The worker calls the Gemini Pro API (`shopAgent`) to generate an intelligent reply, then inserts the user's question, embedding vector, and response text back into the Neon database for future cache hits.
+- **Outbound Dispatch**: The resolved response is broadcasted to the `wa_outbound` Redis Pub/Sub channel for delivery.
+
+---
+
+## 🌐 The Webhook Data Bridge Architecture
+
+To connect WhatsApp events asynchronously, we implement a high-speed, non-blocking gate at `/api/webhook/whatsapp`:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│               REMIX WEBHOOK ROUTE (API)                │
+│                                                        │
+│  GET  /api/webhook/whatsapp  ──► [Verify Meta Token]   │
+│                                                        │
+│  POST /api/webhook/whatsapp  ──► [Validate JSON Schema] │
+│                                         │              │
+│                                         ▼              │
+│                              [Push to BullMQ Redis]    │
+│                                         │              │
+│                                  (Returns 200 OK)      │
+└────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼ Out-of-Band
+                               ┌───────────────────┐
+                               │  worker.ts Loop   │
+                               └───────────────────┘
+```
+
+### Async Operations Workflow
+
+1. **GET Verification**: Meta verifies the webhook endpoint authenticity via standard verification token handshake checks.
+2. **POST Event Ingestion**: Incoming WhatsApp JSON messages (texts, media URLs) are validated against schema boundaries, pushed to the **BullMQ Redis** queue, and the route immediately returns a `200 OK` response to Meta in milliseconds to prevent timeouts.
+3. **Out-of-Band Worker processing**: The decoupled background worker process (`worker.ts`) dequeues messages asynchronously, routing them through rate-limiting, normalization, caching, and agent processing lanes.
+
+---
+
+## 📣 Redis Pub/Sub Outbound Dispatch Architecture
+
+To broadcast outgoing response payloads back to customers without introducing tight file system dependencies or blocking worker execution threads, the system utilizes Redis Pub/Sub (Publish/Subscribe):
+
+```text
+                     ┌───────────────────┐
+                     │     worker.ts     │
+                     └─────────┬─────────┘
+                               │
+               (Publishes response text payload)
+                               ▼
+        ================= REDIS PUB/SUB =================
+                     [Channel: wa_outbound]
+        =================================================
+                               ▲
+                               │
+              (Listens/Subscribes to channel)
+                               │
+                     ┌─────────┴─────────┐
+                     │   wa-bridge.ts    │
+                     └─────────┬─────────┘
+                               │
+                (Sends live message back over RF)
+                               ▼
+                        [Customer Phone]
+```
+
+### Flow Lifecycle
+
+1. **Response Generation**: The decoupled worker (`scripts/worker.ts`) processes the message, queries the cache or LLM, and produces a final text response.
+2. **Outbound Publication**: Instead of calling external APIs directly from the worker, the worker publishes the outbound payload onto the dedicated `wa_outbound` Redis channel.
+3. **Daemon Dispatch**: The local WhatsApp Web daemon bridge (`scripts/wa-bridge.ts`) remains subscribed to the `wa_outbound` channel, intercepts the payload in real-time, and dispatches the live message directly back to the customer's phone.
 
 ---
 

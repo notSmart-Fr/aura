@@ -62,3 +62,7 @@ Thumbs.db
 
 # Verification Gate Results
 .gate-results.json
+
+# WhatsApp Web Session and Cache
+.wwebjs_auth/
+.wwebjs_cache/

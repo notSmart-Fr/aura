@@ -1,6 +1,7 @@
 import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 import { gql } from 'graphql-tag';
 import { VectorSearchResolver } from './vector-search.resolver';
+import { VectorSearchService } from './vector-search.service';
 
 const shopApiExtensions = gql`
   extend type Query {
@@ -26,6 +27,7 @@ const shopApiExtensions = gql`
 
 @VendurePlugin({
   imports: [PluginCommonModule],
+  providers: [VectorSearchService],
   shopApiExtensions: {
     schema: shopApiExtensions,
     resolvers: [VectorSearchResolver],
