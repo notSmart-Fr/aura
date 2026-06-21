@@ -54,6 +54,9 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     // Explicitly add files from the storefront application
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.ts");
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.tsx");
+    if (fs.existsSync("scripts/worker.ts")) {
+      project.addSourceFileAtPath("scripts/worker.ts");
+    }
   }
 
   const sourceFiles = project.getSourceFiles();
@@ -573,6 +576,25 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
           console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
           console.error(`   Mutating network request [${call.getText().substring(0, 40)}...] must provide a config object passing 'Idempotency-Key' in headers.`);
           violationCount++;
+      }
+    }
+  }
+
+    // 15. Ingestion Worker Normalization Gate (scripts/worker.ts)
+    if (relativePath.replace(/\\/g, "/") === "scripts/worker.ts") {
+      const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
+      for (const call of callExpressions) {
+        const exprText = call.getExpression().getText();
+        if (exprText === "processNormalizedPayload") {
+          const args = call.getArguments();
+          for (const arg of args) {
+            const argType = arg.getType().getText();
+            if (!argType.includes("NormalizedPayload")) {
+              console.error(`❌ Rule 15 Normalization Gate Violation in [${relativePath}]:`);
+              console.error(`   Variable [${arg.getText()}] passed to downstream controller [${exprText}] is not bound to a strict 'NormalizedPayload' type.`);
+              violationCount++;
+            }
+          }
         }
       }
     }
@@ -629,7 +651,7 @@ async function main() {
     // Initial full sweep on startup
     await executeSweep();
 
-    const watcher = chokidar.watch("apps/storefront/app/domains/**/*.ts*", {
+    const watcher = chokidar.watch(["apps/storefront/app/domains/**/*.ts*", "scripts/worker.ts"], {
       ignored: /(^|[\/\\])\../,
       persistent: true,
       ignoreInitial: true,
