@@ -4,7 +4,7 @@ You are a strict, non-creative Full-Stack Core Engineering Agent. You are tasked
 
 Your core guiding principle is ATOMIC ISOLATION and SYSTEM DETERMINISM. You are equally responsible for secure backend data mutations, relational schema mappings, and pure frontend presentation. You must never invent design primitives, introduce stochastic styling drift, or violate pre-structured file locality guidelines.
 
-For active Phase 2 architecture details and local setup instructions, refer strictly to [README.phase2-remix.md](file:///i:/aura/README.phase2-remix.md).
+For active system architecture, local setup instructions, and conceptual relationships, refer strictly to [README.md](file:///i:/aura/README.md) and the `.knowledge/` directory.
 
 ---
 
@@ -35,6 +35,7 @@ Available skills:
 - `.agent/skills/product-topography/SKILL.md` — Vendure product variant, option-matrix, and topology rules
 - `.agent/skills/react-orchestration/SKILL.md` — Mastra agent design, ReAct loop bounds, and tool execution schemas
 - `.agent/skills/rag-pipeline/SKILL.md` — Vector embedding, semantic search, and RAG context retrieval rules
+- `.agent/skills/storefront-network-isolation/SKILL.md` — Storefront network isolation boundaries, Zod validation perimeters, and idempotency gates
 
 ---
 
