@@ -32,28 +32,53 @@ export const showRecommendations = createTool({
       }
     `;
 
-    const response = await fetch(process.env.VENDURE_API_URL || 'http://localhost:3000/shop-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: graphqlQuery,
-        variables: { slugs: input.productHandles }
-      })
+    const VendureResponseSchema = z.object({
+      data: z.object({
+        products: z.object({
+          items: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              slug: z.string(),
+              description: z.string(),
+              featuredAsset: z.object({
+                preview: z.string(),
+              }).nullable().optional(),
+              variants: z.array(
+                z.object({
+                  id: z.string(),
+                  name: z.string(),
+                  price: z.number(),
+                  stockLevel: z.any().optional().nullable(),
+                })
+              ),
+            })
+          ),
+        }).nullable().optional(),
+      }),
     });
 
-    const json = await response.json();
-    if (json.errors) throw new Error(json.errors[0].message);
+    const parsed = VendureResponseSchema.parse(
+      await (await fetch(process.env.VENDURE_API_URL || 'http://localhost:3000/shop-api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: { slugs: input.productHandles }
+        })
+      })).json()
+    );
 
     return {
       success: true,
       intro: input.intro,
-      products: (json.data.products?.items || []).map((item: any) => ({
+      products: (parsed.data.products?.items || []).map((item) => ({
         id: item.id,
         title: item.name,
         handle: item.slug,
         description: item.description,
         thumbnail: item.featuredAsset?.preview,
-        variants: (item.variants || []).map((v: any) => ({
+        variants: (item.variants || []).map((v) => ({
           id: v.id,
           title: v.name,
           price: v.price,

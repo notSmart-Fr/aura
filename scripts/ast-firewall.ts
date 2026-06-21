@@ -415,6 +415,169 @@ async function runFirewall() {
         }
       }
     }
+
+    // 14. Storefront Network Isolation Gate
+    for (const call of callExpressions) {
+      const expText = call.getExpression().getText();
+      const isFetch = expText === "fetch" || expText.endsWith(".fetch");
+      const isAxios = expText === "axios" || expText.startsWith("axios.") || expText.includes(".axios");
+      
+      if (isFetch || isAxios) {
+        // A. Verify they are nested within a Zod .parse() node
+        let currentParent: Node | undefined = call.getParent();
+        let isParsed = false;
+        while (currentParent) {
+          if (Node.isCallExpression(currentParent)) {
+            const parentExpr = currentParent.getExpression();
+            if (Node.isPropertyAccessExpression(parentExpr)) {
+              const propName = parentExpr.getName();
+              if (propName === "parse" || propName === "parseAsync" || propName === "safeParse") {
+                isParsed = true;
+                break;
+              }
+            }
+          }
+          currentParent = currentParent.getParent();
+        }
+
+        if (!isParsed) {
+          console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
+          console.error(`   Network call [${call.getText().substring(0, 40)}...] is not nested within a Zod parse node.`);
+          violationCount++;
+        }
+
+        // B. Verify that mutating requests pass an Idempotency-Key header literal.
+        let isMutating = false;
+        let configExpr: Node | undefined;
+
+        if (isFetch) {
+          // fetch(url, options) -> options is the second argument
+          const args = call.getArguments();
+          if (args.length >= 2) {
+            configExpr = args[1];
+          }
+        } else {
+          // axios.post(url, data, config) -> index 2
+          // axios.put(...) -> index 2
+          // axios.patch(...) -> index 2
+          // axios.delete(url, config) -> index 1
+          // axios(config) -> index 0
+          if (expText.endsWith(".post") || expText.endsWith(".put") || expText.endsWith(".patch")) {
+            isMutating = true;
+            const args = call.getArguments();
+            if (args.length >= 3) {
+              configExpr = args[2];
+            }
+          } else if (expText.endsWith(".delete")) {
+            isMutating = true;
+            const args = call.getArguments();
+            if (args.length >= 2) {
+              configExpr = args[1];
+            }
+          } else if (expText === "axios" || expText.endsWith(".request")) {
+            const args = call.getArguments();
+            if (args.length >= 1) {
+              configExpr = args[0];
+            }
+          }
+        }
+
+        // Determine mutation from config/options method property
+        if (configExpr) {
+          let literalObj: Node | undefined;
+          if (Node.isObjectLiteralExpression(configExpr)) {
+            literalObj = configExpr;
+          } else if (Node.isIdentifier(configExpr)) {
+            const declarations = configExpr.getSymbol()?.getDeclarations() || [];
+            for (const def of declarations) {
+              if (Node.isVariableDeclaration(def)) {
+                const init = def.getInitializer();
+                if (init && Node.isObjectLiteralExpression(init)) {
+                  literalObj = init;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (literalObj && Node.isObjectLiteralExpression(literalObj)) {
+            const methodProp = literalObj.getProperty("method");
+            if (methodProp && Node.isPropertyAssignment(methodProp)) {
+              const methodVal = methodProp.getInitializer()?.getText()?.replace(/['"`]/g, "")?.toUpperCase();
+              if (methodVal && ["POST", "PUT", "PATCH", "DELETE"].includes(methodVal)) {
+                // If it is a GraphQL request, check if it contains a mutation
+                let isGraphQLMutation = false;
+                const bodyProp = literalObj.getProperty("body");
+                if (bodyProp && Node.isPropertyAssignment(bodyProp)) {
+                  const bodyInitText = bodyProp.getInitializer()?.getText() || "";
+                  if (bodyInitText.includes("query") || bodyInitText.includes("mutation")) {
+                    if (bodyInitText.includes("mutation") || bodyInitText.includes("mutation ")) {
+                      isGraphQLMutation = true;
+                    }
+                  } else {
+                    isGraphQLMutation = true;
+                  }
+                } else {
+                  isGraphQLMutation = true;
+                }
+                
+                if (methodVal === "POST" && !isGraphQLMutation) {
+                  isMutating = false;
+                } else {
+                  isMutating = true;
+                }
+              }
+            }
+
+            if (isMutating) {
+              const headersProp = literalObj.getProperty("headers");
+              let hasIdempotencyKey = false;
+              if (headersProp && Node.isPropertyAssignment(headersProp)) {
+                const headersInit = headersProp.getInitializer();
+                let headersLiteral: Node | undefined;
+                if (headersInit && Node.isObjectLiteralExpression(headersInit)) {
+                  headersLiteral = headersInit;
+                } else if (headersInit && Node.isIdentifier(headersInit)) {
+                  const declarations = headersInit.getSymbol()?.getDeclarations() || [];
+                  for (const def of declarations) {
+                    if (Node.isVariableDeclaration(def)) {
+                      const init = def.getInitializer();
+                      if (init && Node.isObjectLiteralExpression(init)) {
+                        headersLiteral = init;
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                if (headersLiteral && Node.isObjectLiteralExpression(headersLiteral)) {
+                  const properties = headersLiteral.getProperties();
+                  for (const prop of properties) {
+                    if (Node.isPropertyAssignment(prop)) {
+                      const propName = prop.getName().replace(/['"`]/g, "").toLowerCase();
+                      if (propName === "idempotency-key") {
+                        hasIdempotencyKey = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              if (!hasIdempotencyKey) {
+                console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
+                console.error(`   Mutating network request [${call.getText().substring(0, 40)}...] is missing 'Idempotency-Key' in headers.`);
+                violationCount++;
+              }
+            }
+          }
+        } else if (isMutating) {
+          console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
+          console.error(`   Mutating network request [${call.getText().substring(0, 40)}...] must provide a config object passing 'Idempotency-Key' in headers.`);
+          violationCount++;
+        }
+      }
+    }
   }
 
   // Restore console.error
