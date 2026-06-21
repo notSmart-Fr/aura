@@ -21,17 +21,7 @@ Every plan you return must clearly reference the node properties discovered via 
 
 ---
 
-## 1. AUTOMATED CONTEXT LIFECYCLE (Skills Discovery)
-
-Before generating any Plan or modifying code, execute an automated search on the `.agent/skills/` directory:
-
-1. Read **only** the `description` fields in the YAML frontmatter headers of the skill files inside `.agent/skills/` to dynamically discover available skills.
-2. If your current objective matches a description, load that specific skill markdown file into your active memory context.
-3. If no skills match, drop the directory context entirely to maximize token space.
-
----
-
-## 2. FILE MANAGEMENT & DOMAIN LOCALITY BLUEPRINT
+## 1. FILE MANAGEMENT & DOMAIN LOCALITY BLUEPRINT
 
 You must strictly respect a **Data-Forward Domain Structure**. All code, types, layouts, schemas, and orchestration tools relating to a specific data feature must be colocated inside a self-contained feature leaf directory.
 
@@ -55,17 +45,13 @@ Do not place layout files, hooks, or tools arbitrarily outside these boundary la
 
 ---
 
-## 3. VISUAL RESTRAINTS & STYLING TOKENS
+## 2. DESIGN SYSTEM COMPLIANCE
 
-- **Aesthetic Definition:** Minimalist, luxury typography and layouts (e.g., Hugo Boss style).
-- **Color Rules:** White/Off-white backgrounds (`bg-white`, `bg-zinc-50`), sharp dark charcoal/slate/black text headers (`text-zinc-900`, `text-slate-900`). No neon colors, no heavy Web3 borders, no glowing gradient shadows.
-- **UI Element Borders:** Use strict minimal borders (`border-zinc-200`) and sharp corners (`rounded-none` or `rounded-sm` max).
-- **Layout Aspect Ratios:** All apparel imagery containers must use fixed aspect ratios (`aspect-[3/4]` or `aspect-square`) with a fallback neutral loading state (`bg-zinc-100`).
 - **Design System Reference:** You must strictly conform to the exact tokens, visual policies, layout dimensions, and component blueprints defined in [design.md](file:///i:/aura/design.md). Consult this file before generating or editing styling/components.
 
 ---
 
-## 4. CORE BEHAVIOR & INTEGRATION RULES
+## 3. CORE BEHAVIOR & INTEGRATION RULES
 
 ### Rule A: Separation of Content and Commerce Data
 
@@ -95,12 +81,11 @@ When working on a styling or visual change for a layout component, you are stric
 When implementing visual elements or rendering catalog query results inside transactional widgets (such as the customer support chat):
 
 - All result links must be wrapped in standard HTML `<a>` tags utilizing proper country-code routing localization (`/${countryCode}/products/${handle}`).
-- Product thumbnail displays must use standard `<img>` tags with absolute constraints inside a relative, zero-border-radius (`rounded-none`) wrapper container.
-- Hover animations must respect the 100% garment color accuracy rule, using minimalist border/background changes or image scale transitions (`group-hover:scale-105`) while avoiding all desaturating or color-shifting CSS filters.
+- Visual components, thumbnail containers, and hover behaviors must strictly follow the visual restraints and editorial policy defined in [design.md](file:///i:/aura/design.md).
 
 ---
 
-## 5. VERIFICATION GATEWAY
+## 4. VERIFICATION GATEWAY
 
 This project uses a passive verification execution model. When you save a file, the background file watcher automatically triggers the AST firewall sweep and writes the results to `.gate-results.json` at the root of the workspace.
 
@@ -119,7 +104,7 @@ When you read `.gate-results.json` to check if your code passes the architectura
 
 ---
 
-## 6. AGENT-NATIVE EXECUTION STRATEGY (DATA-FIRST PARADIGM)
+## 5. AGENT-NATIVE EXECUTION STRATEGY (DATA-FIRST PARADIGM)
 
 ### Principle A: Data-First Grounding
 
@@ -149,7 +134,7 @@ When you read `.gate-results.json` to check if your code passes the architectura
 
 ---
 
-## 7. OKF KNOWLEDGE BUNDLE MANAGEMENT
+## 6. OKF KNOWLEDGE BUNDLE MANAGEMENT
 
 1. **Context Discovery**: Before implementing any major feature updates or refactoring logic across Remix/Vendure, you MUST search the `.knowledge/` directory to read relevant structural concepts.
 2. **Graph Mutation**: When you introduce a new feature domain (e.g., adding a checkout handler), you are required to generate a new conformant OKF `.md` file inside `.knowledge/` with a valid `type` YAML header.

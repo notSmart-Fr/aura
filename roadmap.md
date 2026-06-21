@@ -39,12 +39,12 @@ This document maps out the core architectural milestones for the ingestion pipel
 
 ## 👁️ Phase 3: Telemetry & Static Integrity
 
-### [ ] Goal 6: Dual-Layer System Telemetry
+### [x] Goal 6: Dual-Layer System Telemetry
 
-* **Status**: Pending
+* **Status**: Completed
 * **Objective**: Trace details out-of-band to an OpenTelemetry collector panel (SigNoz/Laminar) and write high-level operational counts to PostgreSQL.
 
-### [ ] Goal 7: AST Structural Boundary Enforcement
+### [x] Goal 7: AST Structural Boundary Enforcement
 
-* **Status**: In Progress
+* **Status**: Completed
 * **Objective**: Maintain `scripts/ast-firewall.ts` parser using `ts-morph` to block unsafe code and verify Zod constraints, idempotency keys, and domain isolation on every file save.
