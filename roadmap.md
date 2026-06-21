@@ -25,9 +25,9 @@ This document maps out the core architectural milestones for the ingestion pipel
 
 ## 💾 Phase 2: Performance & Data Optimization
 
-### [ ] Goal 4: Semantic Vector Caching ("Hot Caching")
+### [x] Goal 4: Semantic Vector Caching ("Hot Caching")
 
-* **Status**: Pending
+* **Status**: Completed
 * **Objective**: Calculate input embeddings and search against historical extractions using PostgreSQL + `pgvector` to cache/retrieve matches, avoiding redundant LLM requests.
 
 ### [ ] Goal 5: Context-Window Payload Optimization

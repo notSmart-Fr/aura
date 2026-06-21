@@ -1,6 +1,7 @@
 import { Project, SyntaxKind, Node } from "ts-morph";
 import * as path from "path";
 import { execSync } from "child_process";
+
 import * as fs from "fs";
 import chokidar from "chokidar";
 
@@ -607,7 +608,84 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         }
       }
     }
+
+    // 16. Cosine Similarity Operator Gate (Semantic Cache DB queries)
+    if (sourceFile.getFilePath().replace(/\\/g, "/").includes("apps/storefront/app/domains/ai-cache")) {
+      const fileText = sourceFile.getText();
+      if (fileText.includes("cache_embeddings")) {
+        const stringsAndTemplates = [
+          ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral),
+          ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral),
+          ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression),
+          ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead),
+          ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle),
+          ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail)
+        ];
+        
+        let hasCacheQuery = false;
+        let hasCosineOperator = false;
+        
+        for (const node of stringsAndTemplates) {
+          const text = node.getText();
+          if (text.includes("cache_embeddings")) {
+            hasCacheQuery = true;
+            if (text.includes("<=>")) {
+              hasCosineOperator = true;
+            }
+          }
+        }
+        
+        if (hasCacheQuery && !hasCosineOperator) {
+          console.error(`❌ Rule 16 Cosine Similarity Gate Violation in [${relativePath}]:`);
+          console.error(`   Queries targeting 'cache_embeddings' must execute native distance matching via '<=>'.`);
+          violationCount++;
+        }
+      }
+    }
+
+    // 17. Context-Window Prompt Suffix Optimization Gate
+    if (sourceFile.getFilePath().replace(/\\/g, "/").includes("apps/storefront/app/domains/ai-agents")) {
+      const templates = sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression);
+      for (const template of templates) {
+        const text = template.getText();
+        if (/text|payload/i.test(text)) {
+          const spans = template.getTemplateSpans();
+          if (spans.length > 0) {
+            const lastSpan = spans[spans.length - 1];
+            const lastSpanExpr = lastSpan.getExpression().getText();
+            const lastSpanLiteral = lastSpan.getLiteral().getText().replace(/['"`]/g, "").trim();
+            
+            let invalidIndex = false;
+            for (let i = 0; i < spans.length - 1; i++) {
+              if (/text|payload/i.test(spans[i].getExpression().getText())) {
+                invalidIndex = true;
+              }
+            }
+            
+            if (invalidIndex || lastSpanLiteral.length > 0 || !/text|payload/i.test(lastSpanExpr)) {
+              console.error(`❌ Rule 17 Context-Window Optimization Gate Violation in [${relativePath}]:`);
+              console.error(`   Dynamic user text variables (like payload.text) must be appended at the absolute suffix of the prompt template (last expression with no trailing text).`);
+              violationCount++;
+            }
+          }
+        }
+      }
+      
+      const binaryExprs = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression);
+      for (const bin of binaryExprs) {
+        if (bin.getOperatorToken().getKind() === SyntaxKind.PlusToken) {
+          const leftText = bin.getLeft().getText();
+          const rightText = bin.getRight().getText();
+          if (/text|payload/i.test(leftText) && !/text|payload/i.test(rightText)) {
+            console.error(`❌ Rule 17 Context-Window Optimization Gate Violation in [${relativePath}]:`);
+            console.error(`   Dynamic user text variables (like payload.text) must not be prepended before static prompt strings.`);
+            violationCount++;
+          }
+        }
+      }
+    }
   }
+
 
   // Restore console.error
   console.error = originalConsoleError;

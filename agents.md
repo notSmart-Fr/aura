@@ -25,17 +25,10 @@ Every plan you return must clearly reference the node properties discovered via 
 
 Before generating any Plan or modifying code, execute an automated search on the `.agent/skills/` directory:
 
-1. Read **only** the `description` fields in the YAML frontmatter headers of the skill files inside `.agent/skills/`.
+1. Read **only** the `description` fields in the YAML frontmatter headers of the skill files inside `.agent/skills/` to dynamically discover available skills.
 2. If your current objective matches a description, load that specific skill markdown file into your active memory context.
 3. If no skills match, drop the directory context entirely to maximize token space.
 
-Available skills:
-
-- `.agent/skills/csv-ingestion/SKILL.md` — CSV/spreadsheet seeding and bulk data import rules
-- `.agent/skills/product-topography/SKILL.md` — Vendure product variant, option-matrix, and topology rules
-- `.agent/skills/react-orchestration/SKILL.md` — Mastra agent design, ReAct loop bounds, and tool execution schemas
-- `.agent/skills/rag-pipeline/SKILL.md` — Vector embedding, semantic search, and RAG context retrieval rules
-- `.agent/skills/storefront-network-isolation/SKILL.md` — Storefront network isolation boundaries, Zod validation perimeters, and idempotency gates
 
 ---
 
