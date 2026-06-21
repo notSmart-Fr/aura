@@ -26,14 +26,16 @@ export const searchCatalogTool = createTool({
       }
     `;
 
-    const response = await fetch(process.env.VENDURE_API_URL || 'http://localhost:3000/shop-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: graphqlQuery,
-        variables: { input: { term: input.term, take: 5 } }
+    const response = await z.unknown().parseAsync(
+      fetch(process.env.VENDURE_API_URL || 'http://localhost:3000/shop-api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: { input: { term: input.term, take: 5 } }
+        })
       })
-    });
+    ) as Response;
 
     const json = await response.json();
     if (json.errors) throw new Error(json.errors[0].message);

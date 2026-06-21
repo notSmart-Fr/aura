@@ -2,6 +2,7 @@ import { Project, SyntaxKind, Node } from "ts-morph";
 import * as path from "path";
 import { execSync } from "child_process";
 import * as fs from "fs";
+import chokidar from "chokidar";
 
 function verifyDomainIsolation() {
   try {
@@ -34,23 +35,20 @@ function verifyDomainIsolation() {
   }
 }
 
-async function runFirewall() {
-  console.log("🔥 Starting AST Security Firewall Verification Sweep...");
-  
+async function executeSweep(targetPath?: string): Promise<boolean> {
   verifyDomainIsolation();
 
   const project = new Project();
-  const rawTargetPath = process.argv[2];
 
-  if (rawTargetPath) {
-    const targetPath = rawTargetPath.replace(/\\/g, '/');
-    const absoluteSinglePath = path.resolve(process.cwd(), targetPath).replace(/\\/g, '/');
+  if (targetPath) {
+    const normPath = targetPath.replace(/\\/g, '/');
+    const absoluteSinglePath = path.resolve(process.cwd(), normPath).replace(/\\/g, '/');
     if (fs.existsSync(absoluteSinglePath)) {
       project.addSourceFileAtPath(absoluteSinglePath);
-      console.log(`🔎 Target file provided: ${targetPath}`);
+      console.log(`🔎 Target file provided: ${normPath}`);
     } else {
-      console.error(`❌ Provided target file does not exist: ${targetPath}`);
-      process.exit(1);
+      console.error(`❌ Provided target file does not exist: ${normPath}`);
+      return false;
     }
   } else {
     // Explicitly add files from the storefront application
@@ -592,14 +590,78 @@ async function runFirewall() {
 
   if (!passed) {
     console.error(`\n🚨 BUILD BLOCKED: ${violationCount} structural security violations found.`);
-    process.exit(1);
   } else {
     console.log("✅ Verification successful. All codebase boundaries conform to AST layout requirements.");
+  }
+  return passed;
+}
+
+const gateResultsPath = path.join(process.cwd(), ".gate-results.json");
+
+function flushGateState() {
+  console.log("\n🧹 Cleaning up verification metrics...");
+  try {
+    if (fs.existsSync(gateResultsPath)) {
+      fs.writeFileSync(gateResultsPath, JSON.stringify({ passed: false, status: "stale_or_terminated" }, null, 2));
+      console.log("🗑️ Stale .gate-results.json state successfully wiped clean.");
+    }
+  } catch (error) {
+    console.error("⚠️ Failed to safely flush compiler gate logs:", error);
+  }
+}
+
+process.on("SIGINT", () => {
+  flushGateState();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  flushGateState();
+  process.exit(0);
+});
+
+async function main() {
+  const isWatch = process.argv.includes("--watch");
+
+  if (isWatch) {
+    console.log("🔥 Starting AST Security Firewall Watcher...");
+    
+    // Initial full sweep on startup
+    await executeSweep();
+
+    const watcher = chokidar.watch("apps/storefront/app/domains/**/*.ts*", {
+      ignored: /(^|[\/\\])\../,
+      persistent: true,
+      ignoreInitial: true,
+    });
+
+    watcher.on("add", async (filePath: string) => {
+      console.log(`\n🔎 File added: ${filePath}`);
+      await executeSweep(filePath);
+    });
+
+    watcher.on("change", async (filePath: string) => {
+      console.log(`\n🔎 File changed: ${filePath}`);
+      await executeSweep(filePath);
+    });
+
+    watcher.on("unlink", async (filePath: string) => {
+      console.log(`\n🔎 File removed: ${filePath}`);
+      await executeSweep();
+    });
+  } else {
+    console.log("🔥 Starting AST Security Firewall Verification Sweep...");
+    const rawTargetPath = process.argv[2];
+    const passed = await executeSweep(rawTargetPath);
+    if (!passed) {
+      process.exit(1);
+    }
     process.exit(0);
   }
 }
 
-runFirewall().catch(err => {
+main().catch(err => {
   console.error("🔥 Error executing compiler firewall:", err);
   process.exit(1);
 });
+

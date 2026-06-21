@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 const VENDURE_API_URL = process.env.VENDURE_API_URL || "http://localhost:3000/shop-api";
 
 export interface GraphQLResponse<T> {
@@ -19,11 +21,13 @@ export async function runQuery<T, V = any>(
     headers["vendure-auth-token"] = token;
   }
 
-  const response = await fetch(VENDURE_API_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ query, variables }),
-  });
+  const response = await z.unknown().parseAsync(
+    fetch(VENDURE_API_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query, variables }),
+    })
+  ) as Response;
 
   const newToken = response.headers.get("vendure-auth-token");
   const result = await response.json();

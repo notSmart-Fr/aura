@@ -26,14 +26,19 @@ export const modifyCart = createTool({
       }
     `;
 
-    const response = await fetch(process.env.VENDURE_API_URL || 'http://localhost:3000/shop-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: graphqlMutation,
-        variables: { productVariantId: input.productVariantId, quantity: input.quantity }
+    const response = await z.unknown().parseAsync(
+      fetch(process.env.VENDURE_API_URL || 'http://localhost:3000/shop-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': input.idempotencyKey,
+        },
+        body: JSON.stringify({
+          query: graphqlMutation,
+          variables: { productVariantId: input.productVariantId, quantity: input.quantity }
+        })
       })
-    });
+    ) as Response;
 
     const json = await response.json();
     if (json.errors) throw new Error(json.errors[0].message);

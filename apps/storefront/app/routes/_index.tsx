@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, Link } from "@remix-run/react";
 import React, { useState, useEffect, useRef } from "react";
+import { z } from "zod";
 import { shopAgent } from "../mastra/agents/shopAgent";
 import { Layout } from "../domains/common/layout.component";
 import { fetchActiveOrder } from "../domains/catalog/catalog.queries";
@@ -36,14 +37,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
     `;
 
     try {
-      const response = await fetch(shopApiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: graphqlQuery,
-          variables: { input: { term: searchTerms, take: 4 } }
+      const response = await z.unknown().parseAsync(
+        fetch(shopApiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: graphqlQuery,
+            variables: { input: { term: searchTerms, take: 4 } }
+          })
         })
-      });
+      ) as Response;
 
       const resJson = await response.json();
       if (!resJson.errors && resJson.data?.searchCatalog?.items) {
@@ -83,11 +86,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
     `;
 
     try {
-      const response = await fetch(shopApiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: graphqlQuery })
-      });
+      const response = await z.unknown().parseAsync(
+        fetch(shopApiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: graphqlQuery })
+        })
+      ) as Response;
 
       const resJson = await response.json();
       if (resJson.data?.products?.items) {

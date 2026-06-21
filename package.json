@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "pnpm -r dev",
     "check:firewall": "node --no-warnings --experimental-strip-types scripts/ast-firewall.ts",
-    "verify-agent": "chokidar \"apps/storefront/app/domains/**/*.ts*\" --initial -c \"node --no-warnings --experimental-strip-types scripts/ast-firewall.ts {path}\"",
+    "verify-agent": "node --no-warnings --experimental-strip-types scripts/ast-firewall.ts --watch",
     "build": "pnpm run check:firewall && pnpm -r build",
     "start": "turbo start",
     "lint": "turbo lint",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "chokidar": "^3.6.0",
     "chokidar-cli": "^3.0.0",
     "prettier": "^3.2.5",
     "ts-morph": "^22.0.0",
@@ -26,5 +27,7 @@
     "turbo": "^2.0.14",
     "typescript": "^5.4.5"
   },
-  "dependencies": {}
+  "dependencies": {
+    "bullmq": "^4.17.0"
+  }
 }
