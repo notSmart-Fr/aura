@@ -653,7 +653,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
           if (spans.length > 0) {
             const lastSpan = spans[spans.length - 1];
             const lastSpanExpr = lastSpan.getExpression().getText();
-            const lastSpanLiteral = lastSpan.getLiteral().getText().replace(/['"`]/g, "").trim();
+            const lastSpanLiteral = lastSpan.getLiteral().getText().replace(/^[}\s]+|[\\'"\s`]+$/g, "").trim();
             
             let invalidIndex = false;
             for (let i = 0; i < spans.length - 1; i++) {

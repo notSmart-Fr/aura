@@ -30,9 +30,9 @@ This document maps out the core architectural milestones for the ingestion pipel
 * **Status**: Completed
 * **Objective**: Calculate input embeddings and search against historical extractions using PostgreSQL + `pgvector` to cache/retrieve matches, avoiding redundant LLM requests.
 
-### [ ] Goal 5: Context-Window Payload Optimization
+### [x] Goal 5: Context-Window Payload Optimization
 
-* **Status**: Pending
+* **Status**: Completed
 * **Objective**: Place static commands (system prompt, schemas) at the prompt head and volatile inputs at the tail to optimize LLM engine-level caching.
 
 ---
