@@ -90,13 +90,13 @@ export interface ShippingMethod {
   price: number;
 }
 
-export async function setCustomerForOrder(input: any, token: string | null) {
-  const result = await runQuery<any>(SET_CUSTOMER_FOR_ORDER, { input }, token);
+export async function setCustomerForOrder(input: Record<string, unknown>, token: string | null) {
+  const result = await runQuery<{ setCustomerForOrder: Record<string, unknown> }>(SET_CUSTOMER_FOR_ORDER, { input }, token);
   return result.data.setCustomerForOrder;
 }
 
-export async function setOrderShippingAddress(input: any, token: string | null) {
-  const result = await runQuery<any>(SET_ORDER_SHIPPING_ADDRESS, { input }, token);
+export async function setOrderShippingAddress(input: Record<string, unknown>, token: string | null) {
+  const result = await runQuery<{ setOrderShippingAddress: Record<string, unknown> }>(SET_ORDER_SHIPPING_ADDRESS, { input }, token);
   return result.data.setOrderShippingAddress;
 }
 
@@ -114,16 +114,16 @@ export async function getEligibleShippingMethods(token: string | null): Promise<
 }
 
 export async function setOrderShippingMethod(shippingMethodId: string, token: string | null) {
-  const result = await runQuery<any>(SET_ORDER_SHIPPING_METHOD, { shippingMethodId }, token);
+  const result = await runQuery<{ setOrderShippingMethod: Record<string, unknown> }>(SET_ORDER_SHIPPING_METHOD, { shippingMethodId }, token);
   return result.data.setOrderShippingMethod;
 }
 
 export async function transitionOrderToState(state: string, token: string | null) {
-  const result = await runQuery<any>(TRANSITION_ORDER_TO_STATE, { state }, token);
+  const result = await runQuery<{ transitionOrderToState: Record<string, unknown> }>(TRANSITION_ORDER_TO_STATE, { state }, token);
   return result.data.transitionOrderToState;
 }
 
-export async function addPaymentToOrder(input: any, token: string | null) {
-  const result = await runQuery<any>(ADD_PAYMENT_TO_ORDER, { input }, token);
+export async function addPaymentToOrder(input: Record<string, unknown>, token: string | null) {
+  const result = await runQuery<{ addPaymentToOrder: Record<string, unknown> }>(ADD_PAYMENT_TO_ORDER, { input }, token);
   return result.data.addPaymentToOrder;
 }

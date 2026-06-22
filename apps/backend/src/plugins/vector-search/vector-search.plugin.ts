@@ -34,9 +34,18 @@ const shopApiExtensions = gql`
     resolvers: [VectorSearchResolver],
   },
   configuration: (config) => {
+    const ingestionQueue = new Queue('whatsapp-ingestion', {
+      connection: {
+        host: '127.0.0.1',
+        port: 6379,
+        maxRetriesPerRequest: null,
+        enableOfflineQueue: false,
+      },
+    });
+
     config.apiOptions.middleware.push({
       route: 'api/webhooks/whatsapp',
-      handler: (req: any, res: any, next: any) => {
+      handler: async (req: any, res: any, next: any) => {
         if (req.method === 'GET') {
           const mode = req.query['hub.mode'];
           const token = req.query['hub.verify_token'];
@@ -52,22 +61,13 @@ const shopApiExtensions = gql`
           try {
             const body = req.body;
             const sender = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
-            const text = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body || '';
+            const text = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body;
 
-            if (sender) {
-              const ingestionQueue = new Queue('whatsapp-ingestion', {
-                connection: {
-                  host: '127.0.0.1',
-                  port: 6379,
-                  maxRetriesPerRequest: null,
-                  enableOfflineQueue: false,
-                },
-              });
-              ingestionQueue.add('message', {
+            if (sender && text) {
+              await ingestionQueue.add('message', {
                 sender,
                 text,
-                attachments: [],
-              }).catch(err => console.error('Failed to queue message:', err));
+              });
             }
             res.status(200).send('EVENT_RECEIVED');
           } catch (error) {

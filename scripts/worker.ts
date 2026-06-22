@@ -189,7 +189,7 @@ const worker = new Worker(
 
     if (job.data.attachments && job.data.attachments.length > 0) {
       const attachmentBlocks = job.data.attachments
-        .map((att: any) => `\n\n### Attached Media [Type: ${att.type}]\n- File: ${att.url}`)
+        .map((att: { type: string; url: string }) => `\n\n### Attached Media [Type: ${att.type}]\n- File: ${att.url}`)
         .join("");
       normalizedText += attachmentBlocks;
     }

@@ -9,11 +9,44 @@ import { fetchActiveOrder } from "../domains/catalog/catalog.queries";
 import { getSessionToken } from "../domains/common/session.server";
 
 
+interface ProductItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  thumbnail: string | null;
+  price: number;
+}
+
+interface SearchCatalogResponseItem {
+  productId: string;
+  productName: string;
+  slug: string;
+  description: string;
+  productAsset: {
+    preview: string;
+  } | null;
+}
+
+interface GetProductsResponseItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  featuredAsset: {
+    preview: string;
+  } | null;
+  variants: Array<{
+    id: string;
+    price: number;
+  }> | null;
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const searchTerms = url.searchParams.get("q") || "";
 
-  let products: any[] = [];
+  let products: ProductItem[] = [];
   let isSearch = false;
 
   const shopApiUrl = process.env.VENDURE_API_URL || "http://localhost:3000/shop-api";
@@ -50,7 +83,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
       const resJson = await response.json();
       if (!resJson.errors && resJson.data?.searchCatalog?.items) {
-        products = resJson.data.searchCatalog.items.map((item: any) => ({
+        products = resJson.data.searchCatalog.items.map((item: SearchCatalogResponseItem) => ({
           id: item.productId,
           name: item.productName,
           slug: item.slug,
@@ -96,7 +129,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
       const resJson = await response.json();
       if (resJson.data?.products?.items) {
-        products = resJson.data.products.items.map((item: any) => ({
+        products = resJson.data.products.items.map((item: GetProductsResponseItem) => ({
           id: item.id,
           name: item.name,
           slug: item.slug,
@@ -183,9 +216,10 @@ export async function action({ request }: ActionFunctionArgs) {
       text: response.text,
       toolResults: response.toolResults || [],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Agent generate error:", error);
-    return json({ error: error.message || "Failed to generate agent response" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to generate agent response";
+    return json({ error: message }, { status: 500 });
   }
 }
 
@@ -194,7 +228,23 @@ export default function HomePage() {
   const fetcher = useFetcher<typeof action>();
 
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState<Array<{ sender: "user" | "agent"; text: string; data?: any }>>([
+  interface MessageProduct {
+    id: string;
+    title: string;
+    handle: string;
+    description: string;
+    thumbnail?: string | null;
+  }
+
+  interface Message {
+    sender: "user" | "agent";
+    text: string;
+    data?: {
+      products?: MessageProduct[];
+    };
+  }
+
+  const [messages, setMessages] = useState<Message[]>([
     {
       sender: "agent",
       text: "Welcome to AURA. I am your design and style concierge. Ask me about our architectural silhouettes or ask me to search the catalog."
@@ -212,7 +262,15 @@ export default function HomePage() {
   // Capture response from action
   useEffect(() => {
     if (fetcher.data && fetcher.state === "idle") {
-      const data = fetcher.data as any;
+      interface FetcherData {
+        text?: string;
+        toolResults?: Array<{
+          result?: {
+            products?: MessageProduct[];
+          };
+        }>;
+      }
+      const data = fetcher.data as FetcherData;
       if (data.text || data.toolResults) {
         setMessages((prev) => [
           ...prev,
@@ -398,7 +456,7 @@ export default function HomePage() {
                       <div className="mt-3 pt-3 border-t border-zinc-100 space-y-3">
                         {msg.data.products && msg.data.products.length > 0 ? (
                           <div className="grid grid-cols-2 gap-2">
-                            {msg.data.products.map((p: any) => (
+                            {msg.data.products.map((p: MessageProduct) => (
                               <div key={p.id} className="border border-zinc-100 p-2 flex flex-col bg-white">
                                 {/* Next.js Image fill fallback -> absolute w-full h-full object-cover inside relative rounded-none */}
                                 <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-50 rounded-none mb-1">

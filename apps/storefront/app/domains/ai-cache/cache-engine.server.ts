@@ -37,7 +37,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
   return responseData.embedding;
 }
 
-export async function getSemanticCache(text: string): Promise<any | null> {
+export async function getSemanticCache(text: string): Promise<unknown | null> {
   const embedding = await getEmbedding(text);
   const vectorStr = `[${embedding.join(',')}]`;
   
@@ -62,7 +62,7 @@ export async function getSemanticCache(text: string): Promise<any | null> {
   }
 }
 
-export async function setSemanticCache(text: string, embedding: number[], responseJson: any): Promise<void> {
+export async function setSemanticCache(text: string, embedding: number[], responseJson: unknown): Promise<void> {
   const vectorStr = `[${embedding.join(',')}]`;
   
   const client = await pool.connect();
