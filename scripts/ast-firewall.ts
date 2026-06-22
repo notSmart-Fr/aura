@@ -62,10 +62,13 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     // Explicitly add files from the storefront application
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.ts");
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.tsx");
-    if (fs.existsSync("scripts/worker.ts")) {
-      const existing = project.getSourceFile(path.resolve(process.cwd(), "scripts/worker.ts"));
-      if (existing) project.removeSourceFile(existing);
-      project.addSourceFileAtPath("scripts/worker.ts");
+    project.addSourceFilesAtPaths("apps/backend/src/domains/**/*.ts");
+    for (const scriptPath of ["scripts/worker.ts", "scripts/voice-agent.ts"]) {
+      if (fs.existsSync(scriptPath)) {
+        const existing = project.getSourceFile(path.resolve(process.cwd(), scriptPath));
+        if (existing) project.removeSourceFile(existing);
+        project.addSourceFileAtPath(scriptPath);
+      }
     }
   }
 
@@ -730,6 +733,17 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         violationCount++;
       }
     }
+
+    // 20. Anti-Cheat: z.any().parse() Prevention Gate
+    for (const call of callExpressions) {
+      if (isZodAnyParseCheat(call)) {
+        const lineNumber = call.getStartLineNumber();
+        console.error(`❌ Rule 20 Anti-Cheat Violation in [${relativePath}]: Line ${lineNumber}`);
+        console.error(`   Discovered 'z.any().parse()' network gate bypass shortcut.`);
+        console.error(`   Explicit structural schema validation is strictly mandatory for isolation boundaries.`);
+        violationCount++;
+      }
+    }
   }
 
 
@@ -749,6 +763,24 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     console.log("✅ Verification successful. All codebase boundaries conform to AST layout requirements.");
   }
   return passed;
+}
+
+function isZodAnyParseCheat(node: any): boolean {
+  const expression = node.getExpression();
+  if (!Node.isPropertyAccessExpression(expression)) return false;
+
+  // Checks if the method being called is ".parse(...)"
+  if (expression.getName() !== "parse") return false;
+
+  // Travels up the chain to see if the caller was "z.any()"
+  const subExpression = expression.getExpression();
+  if (!Node.isCallExpression(subExpression)) return false;
+
+  const anyAccess = subExpression.getExpression();
+  if (!Node.isPropertyAccessExpression(anyAccess)) return false;
+
+  // Verifies the exact chain signature: z -> any
+  return anyAccess.getExpression().getText() === "z" && anyAccess.getName() === "any";
 }
 
 const gateResultsPath = path.join(process.cwd(), ".gate-results.json");
@@ -784,7 +816,7 @@ async function main() {
     // Initial full sweep on startup
     await executeSweep();
 
-    const watcher = chokidar.watch(["apps/storefront/app/domains/**/*.ts*", "scripts/worker.ts"], {
+    const watcher = chokidar.watch(["apps/storefront/app/domains/**/*.ts*", "scripts/worker.ts", "scripts/voice-agent.ts", "apps/backend/src/domains/**/*.ts"], {
       ignored: /(^|[\/\\])\../,
       persistent: true,
       ignoreInitial: true,

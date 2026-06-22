@@ -1,21 +1,33 @@
 ---
 type: ArchitectureBridge
 title: AST Security Firewall & Chaos Testing
-description: Explains how the AST security firewall guards codebase invariants and lists all 19 compile-time rules.
+description: Explains how the AST security firewall guards codebase invariants and lists all 20 compile-time rules.
 resource: scripts/ast-firewall.ts
 tags: [security, testing, AST, compiler]
-timestamp: 2026-06-22T15:54:00Z
+timestamp: 2026-06-22T16:28:00Z
 ---
 
 ## AST Security Firewall & Chaos Testing
 
 The AST Security Firewall is a compiler-level safeguard that continuously monitors the codebase to prevent violations of structural architectural rules.
 
+```text
+┌─────────────────┐       Writes Code       ┌──────────────────┐
+│                 │────────────────────────►│  AST Linter Gate  │
+│    AI Agent     │                         └──────────────────┘
+│                 │◄────────────────────────         │
+└─────────────────┘   Fails Gate / Forced to         │ Evaluates Syntax
+                       Write Proper Types            ▼
+                                            ┌──────────────────┐
+                                            │ Pass/Fail Matrix │
+                                            └──────────────────┘
+```
+
 ---
 
 ## 🔒 AST Compiler Firewall Rules
 
-All structural guidelines and boundaries are programmatically checked via custom static analysis (`ts-morph`) in [ast-firewall.ts](file:///i:/aura/scripts/ast-firewall.ts). The firewall evaluates nineteen structural gates:
+All structural guidelines and boundaries are programmatically checked via custom static analysis (`ts-morph`) in [ast-firewall.ts](file:///i:/aura/scripts/ast-firewall.ts). The firewall evaluates twenty structural gates:
 
 1. **GraphQL Client Isolation**: Storefront routes are prohibited from importing backend database drivers or services directly; all data passes through the GraphQL client or Mastra tools.
 2. **Unbound Mastra Tool Parameters**: Tool schemas in `app/domains/` must export input schemas ending in `Schema`, enforcing strict size constraints (`.max()` for strings, `.min()` or `.positive()` and `.max()` for numbers).
@@ -41,6 +53,7 @@ All structural guidelines and boundaries are programmatically checked via custom
 17. **Context-Window Cache Optimization**: Tail-volatile user prompt variables must be appended at the absolute suffix of dynamic template string statements to maximize caching performance.
 18. **Telemetry Data Leakage Prevention**: Tracing span attribute setters (`.setAttribute`) inside worker environments must not record keys containing sensitive terms (`phone`, `sender`, `text`, `message`).
 19. **Explicit Any Prevention**: Disallows explicit `any` type overrides on parameters and variable declarations to protect pipeline type-safety.
+20. **Zod Any Bypass Prevention (Anti-Cheat)**: Disallows the use of `z.any().parse()` network gate bypass shortcuts. Explicit structural schema validation is strictly mandatory.
 
 ---
 

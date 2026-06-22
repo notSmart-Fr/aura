@@ -1,157 +1,82 @@
-// compiler-trigger-comment-v3
+// compiler-trigger-comment-v4
 import { Worker, type Job } from "bullmq";
 import { trace, type Span } from "@opentelemetry/api";
 import { z } from "zod";
-import Redis from "ioredis";
-import fs from "fs";
-import path from "path";
-import { DataSource } from "typeorm";
-import { Kysely, PostgresDialect, sql } from "kysely";
 
-// Load .env manually to ensure DB credentials are ready before domains are imported
-try {
-  const envPath = path.resolve(process.cwd(), "apps/storefront/.env");
-  if (fs.existsSync(envPath)) {
-    const envConfig = fs.readFileSync(envPath, "utf8");
-    for (const line of envConfig.split(/\r?\n/)) {
-      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
-      if (match) {
-        const key = match[1];
-        let val = match[2] || "";
-        if (val.startsWith('"') && val.endsWith('"')) {
-          val = val.substring(1, val.length - 1);
-        } else if (val.startsWith("'") && val.endsWith("'")) {
-          val = val.substring(1, val.length - 1);
-        }
-        process.env[key] = val.trim();
-      }
-    }
-  }
-} catch (e) {
-  console.warn("Failed to load .env file:", e);
-}
+import { OrchestratorService } from "../apps/backend/src/domains/orchestrator/orchestrator.service";
 
 const tracer = trace.getTracer("whatsapp-worker");
+
+const WhatsAppDispatchResponseSchema = z.object({
+  messaging_product: z.literal("whatsapp").optional(),
+  contacts: z.array(z.object({ input: z.string(), wa_id: z.string() })).optional(),
+  messages: z.array(z.object({ id: z.string() })).optional(),
+});
 
 export interface NormalizedPayload {
   text: string;
   metadata: {
     source: string;
+    channel: string;
+    platformUserId: string;
     sender: string;
     timestamp: number;
+    messageId: string;
   };
-  cachedResponse?: any;
+  sessionHistory: { role: "user" | "model"; content: string }[];
 }
 
-// Database schema interfaces for Kysely
-interface ProductTable {
-  id: number;
-  deletedAt: Date | null;
-  customFieldsEmbedding: string | null;
-  featuredAssetId: string | null;
+interface PlatformAdapter {
+  sendResponse(recipientId: string, text: string, messageId: string): Promise<void>;
 }
 
-interface ProductTranslationTable {
-  id: number;
-  baseId: number;
-  name: string;
-  slug: string;
-  description: string;
-}
-
-interface VendureDatabase {
-  product: ProductTable;
-  product_translation: ProductTranslationTable;
-}
-
-interface MatchedProduct {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-}
-
-interface MatchedVariant {
-  id: number;
-  productId: number;
-  price: number;
-  sku: string;
-  enabled: boolean;
-}
-
-let db: Kysely<VendureDatabase> | null = null;
-let typeormDataSource: DataSource | null = null;
-
-async function bootstrapWorkerDataSource(): Promise<DataSource> {
-  const dataSource = new DataSource({
-    type: "postgres",
-    host: process.env.DB_HOST || "localhost",
-    port: parseInt(process.env.DB_PORT || "5432"),
-    username: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "postgres",
-    database: process.env.DB_NAME || "vendure",
-    ssl: process.env.DB_HOST && process.env.DB_HOST !== "localhost" ? { rejectUnauthorized: false } : false,
-    synchronize: false,
-    logging: false,
-  });
-  await dataSource.initialize();
-  return dataSource;
-}
-
-async function getDbConnection() {
-  if (!db) {
-    typeormDataSource = await bootstrapWorkerDataSource();
-    const rawPool = (typeormDataSource.driver as any).master;
-    db = new Kysely<VendureDatabase>({
-      dialect: new PostgresDialect({ pool: rawPool }),
-    });
-  }
-  return { db, dataSource: typeormDataSource };
-}
-
-async function processNormalizedPayload(payload: NormalizedPayload) {
-  console.log(`[Queue Worker] Forwarded normalized payload to AI:`, payload);
-
-  let responseText = "";
-  console.log(`[Queue Worker] Triggering shopAgent...`);
-  
-  const { shopAgent } = await import("../apps/storefront/app/mastra/agents/shopAgent");
-
-  const result = await shopAgent.generate(payload.text);
-  if (result.steps.length >= 5 && result.finishReason !== "stop") {
-    responseText = "Unable to resolve your request. A team member will follow up.";
-  } else {
-    responseText = result.text;
-  }
-
-  // Send outbound message directly to Meta WhatsApp Cloud API (v21.0)
-  // Nested under a Zod parse node to satisfy Rule 14 Network Isolation Gate
-  // Must pass 'Idempotency-Key' header literal to satisfy Rule 14 B
-  const whatsappResponse = z.any().parse(
-    await fetch(
-      `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
-          "Idempotency-Key": `outbound-${payload.metadata.sender}-${Date.now()}`,
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: payload.metadata.sender,
-          type: "text",
-          text: {
-            preview_url: false,
-            body: responseText,
+class WhatsAppAdapter implements PlatformAdapter {
+  async sendResponse(recipientId: string, text: string, messageId: string): Promise<void> {
+    const response = z.instanceof(Response).parse(
+      await fetch(
+        `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
+            "Idempotency-Key": `outbound-${messageId}`,
           },
-        }),
-      }
-    )
-  );
-  console.log(`[Queue Worker] Dispatched outbound message to Meta. Response status: ${whatsappResponse.status}`);
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: recipientId,
+            type: "text",
+            text: {
+              preview_url: false,
+              body: text,
+            },
+          }),
+        }
+      )
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      throw new Error(
+        `WhatsApp API dispatch failed with status ${response.status} (${response.statusText}): ${errorText}`
+      );
+    }
+
+    const rawJson = await response.json();
+    const parsedResponse = WhatsAppDispatchResponseSchema.parse(rawJson);
+
+    console.log(
+      `[Queue Worker] Dispatched outbound message to Meta. Message ID: ${parsedResponse.messages?.[0]?.id || "unknown"}`
+    );
+  }
 }
+
+const platformRegistry = new Map<string, PlatformAdapter>([
+  ["whatsapp", new WhatsAppAdapter()],
+]);
+
+const orchestratorService = new OrchestratorService();
 
 const worker = new Worker(
   "whatsapp-ingestion",
@@ -162,7 +87,6 @@ const worker = new Worker(
     const clientKey = `rate:${job.data.sender}`;
 
     let isBlocked = false;
-    // Rate Limiter Tracer Span
     await tracer.startActiveSpan("rate-limiter", async (span: Span) => {
       span.setAttribute("system.operation", "rate-limit");
       span.setAttribute("redis.key_prefix", "rate");
@@ -181,11 +105,10 @@ const worker = new Worker(
 
     if (isBlocked) {
       console.warn(`⚠️ [Rate Limiter] Blocked spam payload from: ${job.data.sender}`);
-      return; // Clean drop out-of-band
+      return;
     }
 
-    // Normalization translation pipeline step
-    let normalizedText = job.data.text || "";
+    let normalizedText: string = job.data.text || "";
 
     if (job.data.attachments && job.data.attachments.length > 0) {
       const attachmentBlocks = job.data.attachments
@@ -194,81 +117,22 @@ const worker = new Worker(
       normalizedText += attachmentBlocks;
     }
 
-    const normalizedPayload: NormalizedPayload = {
+    const channel: string = typeof job.data.channel === "string" ? job.data.channel : "whatsapp";
+    const platformUserId: string = job.data.sender;
+    const messageId: string = job.id || `unknown-${Date.now()}`;
+
+    const adapter = platformRegistry.get(channel);
+    if (!adapter) {
+      throw new Error(`[Queue Worker] No platform adapter registered for channel: ${channel}`);
+    }
+
+    const responseTexts = await orchestratorService.processIntent({
       text: normalizedText,
-      metadata: {
-        source: "whatsapp",
-        sender: job.data.sender,
-        timestamp: Date.now(),
-      },
-    };
-
-    // Semantic lookup and live context hydration Tracer Span
-    await tracer.startActiveSpan("context-hydration", async (span: Span) => {
-      span.setAttribute("system.operation", "context-hydration");
-      span.setAttribute("payload.length", normalizedPayload.text.length);
-
-      try {
-        const { db: database, dataSource } = await getDbConnection();
-        if (!dataSource) {
-          throw new Error("[Queue Worker] Database DataSource connection is not established.");
-        }
-        const { getEmbedding } = await import("../apps/storefront/app/domains/ai-cache/cache-engine.server");
-        
-        console.log(`[Queue Worker] Generating embedding coordinates for query...`);
-        const embedding = await getEmbedding(normalizedPayload.text);
-        const vectorLiteral = `[${embedding.join(",")}]`;
-
-        console.log(`[Queue Worker] Executing Kysely vector similarity search...`);
-        const matchedProducts = await database
-          .selectFrom("product as p")
-          .innerJoin("product_translation as pt", "pt.baseId", "p.id")
-          .select([
-            "p.id",
-            "pt.name",
-            "pt.slug",
-            "pt.description",
-          ])
-          .where("p.deletedAt", "is", null)
-          .orderBy(
-            sql`p."customFieldsEmbedding" <=> cast(${vectorLiteral} as vector)`,
-            "asc"
-          )
-          .limit(3)
-          .execute() as unknown as MatchedProduct[];
-
-        if (matchedProducts.length > 0) {
-          const productIds = matchedProducts.map((p: MatchedProduct) => p.id);
-          const rawPool = (dataSource.driver as any).master;
-
-          console.log(`[Queue Worker] Querying pg Pool for live variant context...`);
-          const variantResult = await rawPool.query(
-            `SELECT id, "productId", price, sku, enabled FROM product_variant WHERE "productId" = ANY($1) AND "deletedAt" IS NULL`,
-            [productIds]
-          );
-          const variants = variantResult.rows as MatchedVariant[];
-
-          const contextBlocks = matchedProducts.map((p: MatchedProduct) => {
-            const pVariants = variants.filter((v: MatchedVariant) => v.productId === p.id);
-            const variantDetails = pVariants.map((v: MatchedVariant) => 
-              `SKU: ${v.sku}, Price: $${(v.price / 100).toFixed(2)}, Available: ${v.enabled ? "Yes" : "No"}`
-            ).join(" | ");
-            return `[Product: ${p.name}, Slug: ${p.slug}, Description: ${p.description}, Variants: {${variantDetails}}]`;
-          }).join("\n");
-
-          normalizedPayload.text = `${normalizedPayload.text}\n\n[Live Storefront Catalog Context (Grounding Only - do not output raw tables/lists):\n${contextBlocks}]`;
-          console.log(`[Queue Worker] Layered context hydration completed.`);
-        }
-      } catch (err) {
-        console.error(`[Queue Worker] Context hydration failed:`, err);
-        // Let it propagate to trigger BullMQ's standard retry policy
-        throw err;
-      } finally {
-        span.end();
-      }
+      channel,
+      platformUserId,
     });
 
-    await processNormalizedPayload(normalizedPayload);
+    await adapter.sendResponse(job.data.sender, responseTexts[0], messageId);
   },
   {
     connection: {
@@ -279,8 +143,8 @@ const worker = new Worker(
     },
     limiter: {
       max: 1,
-      duration: 4000
-    }
+      duration: 4000,
+    },
   }
 );
 
@@ -292,10 +156,7 @@ async function shutdown(signal: string) {
   console.log(`Received ${signal}. Shutting down worker...`);
   try {
     await worker.close();
-    if (typeormDataSource) {
-      await typeormDataSource.destroy();
-      console.log("TypeORM DataSource closed successfully.");
-    }
+    await orchestratorService.close();
     console.log("Worker closed successfully.");
     process.exit(0);
   } catch (error) {
@@ -306,4 +167,3 @@ async function shutdown(signal: string) {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-

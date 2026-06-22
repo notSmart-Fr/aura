@@ -66,3 +66,6 @@ Thumbs.db
 # WhatsApp Web Session and Cache
 .wwebjs_auth/
 .wwebjs_cache/
+
+#mcp-codebase-memory-mcp
+install.ps1

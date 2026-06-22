@@ -31,6 +31,9 @@
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.39",
     "@ai-sdk/openai": "^3.0.73",
+    "@livekit/agents": "^1.4.8",
+    "@livekit/agents-plugin-cartesia": "^1.4.8",
+    "@livekit/agents-plugin-deepgram": "^1.4.8",
     "@opentelemetry/api": "^1.9.0",
     "bullmq": "^4.17.0",
     "ioredis": "^5.11.1",
