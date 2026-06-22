@@ -1,5 +1,16 @@
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import { z } from "zod";
+import { Queue } from "bullmq";
+
+// Initialize BullMQ Queue
+const ingestionQueue = new Queue("whatsapp-ingestion", {
+  connection: {
+    host: "127.0.0.1",
+    port: 6379,
+    maxRetriesPerRequest: null,
+    enableOfflineQueue: false,
+  },
+});
 
 // Zod schemas for strict perimeter validation
 const WhatsappHandshakeSchema = z.object({
@@ -38,7 +49,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return new Response("Forbidden", { status: 403 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Explicit isolation of ZodError for predictable fallback
       return new Response("Invalid request parameters", { status: 400 });
     }
     return new Response("Internal Server Error", { status: 500 });
@@ -49,11 +59,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * POST action router for receiving WhatsApp webhook payloads
  */
 export async function action({ request }: ActionFunctionArgs) {
-  // Webhook signature and authentication validation sequence (Satisfies AST Rule 3 / Rule 4)
-  // x-vendure-signature check
-  const authHeader = request.headers.get("Authorization");
+  // Webhook signature checks
   const signature = request.headers.get("x-hub-signature-256") || request.headers.get("x-vendure-signature");
-  
   if (!signature) {
     return new Response("Unauthorized signature", { status: 401 });
   }
@@ -64,19 +71,30 @@ export async function action({ request }: ActionFunctionArgs) {
     // Strict schema parse validation at the perimeter
     const parsedBody = WhatsappPayloadSchema.parse(body);
 
-    // Authentication / Session check simulation
-    if (authHeader) {
-      const userRole = "webhook-agent"; // session user reference
-    }
+    const { entry } = parsedBody;
+    const change = entry?.[0]?.changes?.[0]?.value;
+    const message = change?.messages?.[0];
 
-    // TODO: Delegate processing to downstream Mastra tools / workflows
+    if (message) {
+      const sender = message.from;
+      const text = message.text?.body || "";
+
+      if (sender) {
+        // Pack exactly like legacy structure and push onto ingestionQueue
+        await ingestionQueue.add("message", {
+          sender,
+          text,
+          attachments: [],
+        });
+      }
+    }
     
     return new Response("EVENT_RECEIVED", { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Isolate Zod parsing error from general network/system exceptions
       return new Response("Invalid payload schema", { status: 400 });
     }
     return new Response("Bad Request", { status: 400 });
   }
 }
+
