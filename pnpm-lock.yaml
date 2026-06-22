@@ -35,9 +35,15 @@ importers:
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
+      kysely:
+        specifier: ^0.26.3
+        version: 0.26.3
       pg:
         specifier: ^8.22.0
         version: 8.22.0
+      typeorm:
+        specifier: 0.3.20
+        version: 0.3.20(ioredis@5.11.1)(pg@8.22.0)(ts-node@10.9.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.9.3))
       zod:
         specifier: 4.2.0
         version: 4.2.0
@@ -12898,6 +12904,30 @@ snapshots:
     optionalDependencies:
       ioredis: 5.11.1
       pg: 8.21.0
+      ts-node: 10.9.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - supports-color
+
+  typeorm@0.3.20(ioredis@5.11.1)(pg@8.22.0)(ts-node@10.9.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.9.3)):
+    dependencies:
+      '@sqltools/formatter': 1.2.5
+      app-root-path: 3.1.0
+      buffer: 6.0.3
+      chalk: 4.1.2
+      cli-highlight: 2.1.11
+      dayjs: 1.11.21
+      debug: 4.4.3
+      dotenv: 16.6.1
+      glob: 10.5.0
+      mkdirp: 2.1.6
+      reflect-metadata: 0.2.2
+      sha.js: 2.4.12
+      tslib: 2.8.1
+      uuid: 9.0.1
+      yargs: 17.7.2
+    optionalDependencies:
+      ioredis: 5.11.1
+      pg: 8.22.0
       ts-node: 10.9.2(@swc/core@1.15.41(@swc/helpers@0.5.23))(@types/node@20.19.43)(typescript@5.9.3)
     transitivePeerDependencies:
       - supports-color

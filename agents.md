@@ -10,7 +10,7 @@ For active system architecture, local setup instructions, and conceptual relatio
 
 ## 0. CODEBASE DISCOVERY MANDATE (Graph-First Traversal)
 
-You are strictly prohibited from text-searching (`grep`, `view_file`, `list_dir`) for structural code exploration. You possess a live, multi-pass Tree-Sitter knowledge graph via `codebase-memory-mcp` tracking 358 nodes and 391 edges at project boundary `"I-aura"`.
+You are strictly prohibited from text-searching (`grep`, `view_file`, `list_dir`) for structural code exploration. You possess a live, multi-pass Tree-Sitter knowledge graph via `codebase-memory-mcp` tracking at project boundary `"I-aura"`.
 
 Before opening a file or guessing an architectural pathway, you must execute your exploration via the graph cascade:
 

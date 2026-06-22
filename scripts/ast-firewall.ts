@@ -716,6 +716,20 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         }
       }
     }
+
+    // 19. Explicit Any Prevention Gate
+    const paramsAndVars = [
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.Parameter),
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    ];
+    for (const node of paramsAndVars) {
+      const typeNode = node.getTypeNode();
+      if (typeNode && typeNode.getKind() === SyntaxKind.AnyKeyword) {
+        console.error(`❌ Rule 19 Explicit Any Gate Violation in [${relativePath}]:`);
+        console.error(`   Explicit 'any' type override discovered on variable/parameter "${node.getName()}". Type safety is mandatory.`);
+        violationCount++;
+      }
+    }
   }
 
 
