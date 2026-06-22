@@ -1,27 +1,50 @@
 ---
 type: ArchitectureBridge
 title: AST Security Firewall & Chaos Testing
-description: Explains how the AST security firewall guards codebase invariants and how to run the chaos test suite.
+description: Explains how the AST security firewall guards codebase invariants and lists all 19 compile-time rules.
 resource: scripts/ast-firewall.ts
 tags: [security, testing, AST, compiler]
-timestamp: 2026-06-21T18:58:00Z
+timestamp: 2026-06-22T15:54:00Z
 ---
 
 ## AST Security Firewall & Chaos Testing
 
 The AST Security Firewall is a compiler-level safeguard that continuously monitors the codebase to prevent violations of structural architectural rules.
 
-### Core Guardrails
+---
 
-The firewall enforces rules across the storefront and backend worker components:
+## 🔒 AST Compiler Firewall Rules
 
-- **Medusa Import Restriction:** Direct Medusa database imports are forbidden in favor of GraphQL client queries.
-- **Zod Schema Constraining:** Mastra tool schemas and checkout parameters must enforce limits (e.g. string lengths, quantity boundaries).
-- **Remix Route Security:** Remix actions must require session authentication, and webhook handlers must verify signatures.
-- **Workflow & Network Isolation:** Promising maps calling raw AI embeddings must be throttled, and all storefront network calls must be wrapped within a Zod parser.
-- **Worker Input Contracts:** Ingestion workers must process strictly typed objects matching `NormalizedPayload`.
+All structural guidelines and boundaries are programmatically checked via custom static analysis (`ts-morph`) in [ast-firewall.ts](file:///i:/aura/scripts/ast-firewall.ts). The firewall evaluates nineteen structural gates:
 
-### Local Development Watcher
+1. **GraphQL Client Isolation**: Storefront routes are prohibited from importing backend database drivers or services directly; all data passes through the GraphQL client or Mastra tools.
+2. **Unbound Mastra Tool Parameters**: Tool schemas in `app/domains/` must export input schemas ending in `Schema`, enforcing strict size constraints (`.max()` for strings, `.min()` or `.positive()` and `.max()` for numbers).
+3. **Unauthenticated Remix Actions**: Every HTTP POST action in storefront routes must perform session/authentication validation.
+4. **Webhook Signature Validation**: Webhook endpoints must check signature headers (`x-vendure-signature`) to protect against event replay attacks.
+5. **AI Concurrency Limit**: AI embeddings and Gemini client loops must be batched/throttled instead of wrapped in plain, unthrottled `Promise.all` maps.
+6. **Controlled Form Inputs**: Raw `onChange` listeners on standard `<input>` tags must have debounced/value bindings to prevent search flood vectors.
+7. **Stream Sanitization**: LLM generation output must be parsed and sanitized with `validateAndFilterOutput`.
+8. **Process.Env Access Block**: Direct referencing of `process.env.*` in client components or tools is forbidden to prevent context exposure leaks.
+9. **Telemetry Anonymization**: Database hashes or primary identifiers must be stripped before being passed to tracking events.
+10. **Banned Jsx Spreads**: Spread operators (`{...props}`) are prohibited on custom component tags to prevent implicit data exposures.
+11. **AI Model Constraint**: Mastra Agents are restricted to validated models (`google/gemini-2.0-flash`, `google/gemini-2.5-flash`, `deepseek-chat`, etc.).
+12. **Mastra Tool Metadata**: All created tools must have a precise alphanumeric `id` and a detailed description of at least 20 characters.
+13. **E-commerce Security & Idempotency**:
+    - State-mutating tools inside `domains/cart/` and `domains/checkout/` must include `idempotencyKey: z.string().uuid()`.
+    - Quantity properties must enforce positive integer types (`.int().positive()`) and a maximum limit of `.max(99)`.
+    - Direct `price` or `amount` inputs in client-facing tool schemas are strictly forbidden (prices must resolve exclusively on the backend).
+14. **Storefront Network Isolation**:
+    - Raw unvalidated network payloads (`fetch`, `axios`) are forbidden; all network calls must be wrapped inside a structural Zod schema validation node (e.g. `Schema.parse()`).
+    - Mutating outbound network calls must explicitly declare an `'Idempotency-Key'` header assigned to a unique UUID.
+15. **Ingestion Worker Normalization**: Downstream ingestion payload processors must consume strictly structured `NormalizedPayload` types.
+16. **Cosine Similarity Distance Query**: Queries targeting the `cache_embeddings` semantic database table must execute similarity distance matches utilizing the native pgvector `<=>` operator.
+17. **Context-Window Cache Optimization**: Tail-volatile user prompt variables must be appended at the absolute suffix of dynamic template string statements to maximize caching performance.
+18. **Telemetry Data Leakage Prevention**: Tracing span attribute setters (`.setAttribute`) inside worker environments must not record keys containing sensitive terms (`phone`, `sender`, `text`, `message`).
+19. **Explicit Any Prevention**: Disallows explicit `any` type overrides on parameters and variable declarations to protect pipeline type-safety.
+
+---
+
+## Local Development Watcher
 
 To run the watcher locally in watch mode to scan modifications in real-time:
 
@@ -37,7 +60,7 @@ To verify that the AST Security Firewall is auditing rules correctly without bre
 
 ### Isolated Scenario Mocking
 
-The mock code containing violations for all 15 rules is located in:
+The mock code containing violations for all rules is located in:
 
 - [chaos.tsx](../../scripts/chaos-tests/chaos.tsx) (Rules 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14)
 - [chaosTool.ts](../../scripts/chaos-tests/chaosTool.ts) (Rules 2, 13)
@@ -52,4 +75,4 @@ To run a full-codebase sweep specifically targeted at these mock files, execute:
 pnpm check:firewall:chaos
 ```
 
-This forces the firewall to evaluate only the chaos tests and output the full list of 15 violations simultaneously into `.gate-results.json`.
+This forces the firewall to evaluate only the chaos tests and output the full list of violations simultaneously into `.gate-results.json`.

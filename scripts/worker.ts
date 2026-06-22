@@ -1,4 +1,4 @@
-// compiler-trigger-comment
+// compiler-trigger-comment-v3
 import { Worker, type Job } from "bullmq";
 import { trace, type Span } from "@opentelemetry/api";
 import { z } from "zod";
