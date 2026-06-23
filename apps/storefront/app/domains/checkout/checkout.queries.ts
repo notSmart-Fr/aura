@@ -108,7 +108,7 @@ export async function getEligibleShippingMethods(token: string | null): Promise<
       token
     );
     return result.data.eligibleShippingMethods || [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }

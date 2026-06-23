@@ -115,7 +115,7 @@ export async function fetchActiveCustomer(token: string | null): Promise<Custome
       token
     );
     return result.data.activeCustomer;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

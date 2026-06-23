@@ -11,6 +11,9 @@
     },
     "modern-web-guidance": {
       "enabled": true
+    },
+    "docs-canvas": {
+      "enabled": true
     }
   }
 }

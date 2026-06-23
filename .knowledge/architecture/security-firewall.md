@@ -1,7 +1,7 @@
 ---
 type: ArchitectureBridge
 title: AST Security Firewall & Chaos Testing
-description: Explains how the AST security firewall guards codebase invariants and lists all 20 compile-time rules.
+description: Explains how the AST security firewall guards codebase invariants and lists all 21 compile-time rules.
 resource: scripts/ast-firewall.ts
 tags: [security, testing, AST, compiler]
 timestamp: 2026-06-22T16:28:00Z
@@ -27,7 +27,7 @@ The AST Security Firewall is a compiler-level safeguard that continuously monito
 
 ## 🔒 AST Compiler Firewall Rules
 
-All structural guidelines and boundaries are programmatically checked via custom static analysis (`ts-morph`) in [ast-firewall.ts](file:///i:/aura/scripts/ast-firewall.ts). The firewall evaluates twenty structural gates:
+All structural guidelines and boundaries are programmatically checked via custom static analysis (`ts-morph`) in [ast-firewall.ts](file:///i:/aura/scripts/ast-firewall.ts). The firewall evaluates twenty-one structural gates:
 
 1. **GraphQL Client Isolation**: Storefront routes are prohibited from importing backend database drivers or services directly; all data passes through the GraphQL client or Mastra tools.
 2. **Unbound Mastra Tool Parameters**: Tool schemas in `app/domains/` must export input schemas ending in `Schema`, enforcing strict size constraints (`.max()` for strings, `.min()` or `.positive()` and `.max()` for numbers).
@@ -54,6 +54,7 @@ All structural guidelines and boundaries are programmatically checked via custom
 18. **Telemetry Data Leakage Prevention**: Tracing span attribute setters (`.setAttribute`) inside worker environments must not record keys containing sensitive terms (`phone`, `sender`, `text`, `message`).
 19. **Explicit Any Prevention**: Disallows explicit `any` type overrides on parameters and variable declarations to protect pipeline type-safety.
 20. **Zod Any Bypass Prevention (Anti-Cheat)**: Disallows the use of `z.any().parse()` network gate bypass shortcuts. Explicit structural schema validation is strictly mandatory.
+21. **Explicit Catch-Block Type-Guarding**: Disallows naked or un-typed catch blocks within orchestration and storage domains. Every exception variable must be explicitly typed as `unknown`, and if unsafe property access is performed (dot notation like `err.message` or bracket notation like `err['stack']`), the first statement must execute a type-safe structural verification (e.g., `if (error instanceof Error)`) before any properties are evaluated.
 
 ---
 
@@ -79,6 +80,7 @@ The mock code containing violations for all rules is located in:
 - [chaosTool.ts](../../scripts/chaos-tests/chaosTool.ts) (Rules 2, 13)
 - [api.webhook.tsx](../../scripts/chaos-tests/api.webhook.tsx) (Rule 4)
 - [worker.ts](../../scripts/chaos-tests/worker.ts) (Rule 15)
+- [catch-block.ts](../../scripts/chaos-tests/catch-block.ts) (Rule 21)
 
 ### Running Chaos Verification
 

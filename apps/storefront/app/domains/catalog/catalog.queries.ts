@@ -171,7 +171,7 @@ export async function fetchActiveOrder(token: string | null): Promise<ActiveOrde
   try {
     const result = await runQuery<{ activeOrder: ActiveOrder | null }>(GET_ACTIVE_ORDER, {}, token);
     return result.data.activeOrder;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

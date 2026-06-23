@@ -77,3 +77,9 @@ To broadcast outbound response payloads back to customers without blocking worke
 1. **Response Resolution**: The background worker generates the response text and publishes the payload onto the dedicated `wa_outbound` Redis channel.
 2. **Bridge Subscription**: The local WhatsApp Web daemon bridge (`scripts/wa-bridge.ts`) subscribes to the channel in real-time.
 3. **Delivery**: Upon intercepting a published payload, the bridge formats the message and sends it out to the customer's device.
+
+---
+
+### 3. Environment Variables
+
+WhatsApp secrets are split across three files by responsibility — verify token (backend + storefront), app secret (storefront inbound), access token + phone ID (scripts outbound). See [environment-config.md](./environment-config.md) §7.

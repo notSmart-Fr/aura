@@ -189,7 +189,7 @@ export class OrchestratorService {
           hydratedText = `${text}\n\n[Live Storefront Catalog Context (Grounding Only - do not output raw tables/lists):\n${contextBlocks}]`;
           console.log(`[OrchestratorService] Layered context hydration completed.`);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error(`[OrchestratorService] Context hydration failed:`, err);
         throw err;
       } finally {

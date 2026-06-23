@@ -112,3 +112,9 @@ The file is added to the AST firewall default sweep. Relevant rules enforced at 
 | 14 | No naked `fetch`/`axios` outside Zod parse | All network inside `@livekit/agents` SDK boundaries |
 | 19 | No explicit `any` on params or variables | `error: unknown` + `instanceof Error` guard |
 | 20 | No `z.any().parse()` bypass | No Zod usage in this file at all |
+
+---
+
+### 6. Required Environment Variables
+
+LiveKit, Deepgram, and Cartesia keys live in `scripts/.env`. `OrchestratorService` inherits `DB_*`, `DEEPSEEK_API_KEY`, and `PAYLOAD_DATABASE_URL` from app env files via [`scripts/load-env.ts`](../../scripts/load-env.ts). Full key map: [environment-config.md](./environment-config.md).

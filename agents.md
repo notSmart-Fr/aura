@@ -173,7 +173,7 @@ Channel ingestion (WhatsApp, LiveKit voice) must split responsibilities across t
 - **Single source of truth:** `OrchestratorService.processIntent` is the only entry point for conversation state mutations. Callers must not duplicate Redis session logic in transport runners.
 - **Transport isolation:** Network dispatch (`fetch` to Meta, future voice APIs) stays in adapter/runner code with Zod-parsed responses and `Idempotency-Key` headers (AST Rule 14).
 - **Session write timing:** `appendTurns` runs only after `shopAgent.generate` succeeds, before `processIntent` returns — catalog grounding blocks are never persisted to Redis.
-- **Reference:** See [session-memory.md](.knowledge/architecture/session-memory.md) for the full lifecycle diagram.
+- **Reference:** See [session-memory.md](.knowledge/architecture/session-memory.md) for the full lifecycle diagram and [environment-config.md](.knowledge/architecture/environment-config.md) for secret file placement.
 
 
 ---
@@ -228,8 +228,11 @@ This project uses a passive verification execution model. When you save a file, 
 - `apps/backend/src/domains/**/*.ts` — backend orchestration leaf nodes (Rules 19, 20 enforced)
 - `scripts/worker.ts` — ingestion transport runner (Rules 14, 15, 18)
 - `scripts/voice-agent.ts` — LiveKit voice transport runner (Rules 14, 19, 20)
+- `scripts/load-env.ts` — loads `apps/backend/.env`, `apps/storefront/.env`, `scripts/.env` for root scripts
 
 The `pnpm verify-agent` watcher monitors `apps/storefront/app/domains/**`, `apps/backend/src/domains/**`, `scripts/worker.ts`, and `scripts/voice-agent.ts`. Restart the watcher after changing firewall glob paths so new domains are watched.
+
+**Environment templates:** see [environment-config.md](.knowledge/architecture/environment-config.md) and [ENV.md](ENV.md) — three `.env.template` files map to `apps/backend/.env`, `apps/storefront/.env`, and `scripts/.env`.
 
 Before concluding your turn or declaring an implementation complete, you must:
 

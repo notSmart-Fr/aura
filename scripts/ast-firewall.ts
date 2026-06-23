@@ -6,6 +6,7 @@ import * as fs from "fs";
 import chokidar from "chokidar";
 
 function verifyDomainIsolation() {
+  if (process.argv.includes("--no-isolation")) return;
   try {
     const modifiedFiles = execSync("git status --porcelain", { stdio: ["pipe", "pipe", "ignore"] }).toString();
     const domainLines = modifiedFiles
@@ -744,6 +745,47 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         violationCount++;
       }
     }
+
+    // 21. Explicit Catch-Block Type-Guarding
+    const catchClauses = sourceFile.getDescendantsOfKind(SyntaxKind.CatchClause);
+    for (const catchClause of catchClauses) {
+      const variableDecl = catchClause.getVariableDeclaration();
+
+      if (variableDecl) {
+        const varName = variableDecl.getName();
+        const typeNode = variableDecl.getTypeNode();
+
+        // Check 1: Must be explicitly typed as 'unknown'
+        if (!typeNode || typeNode.getKind() !== SyntaxKind.UnknownKeyword) {
+          console.error(`❌ Rule 21 Catch-Block Type Gate Violation in [${relativePath}]:`);
+          console.error(`   Catch variable [${varName}] must be explicitly typed as ': unknown'.`);
+          violationCount++;
+        }
+
+        // Check 2: First statement must be type-guard if variable has unsafe property access
+        const block = catchClause.getBlock();
+        const statements = block.getStatements();
+
+        if (statements.length > 0) {
+          const firstStmt = statements[0];
+          const blockText = block.getText();
+
+          // Verify if the variable is used for UNSAFE property access (dot or bracket notation)
+          const hasPropertyAccess = new RegExp(`\\b${varName}\\.\\w+|\\b${varName}\\[`).test(blockText);
+
+          if (hasPropertyAccess) {
+            const firstStmtText = firstStmt.getText();
+            const hasTypeGuard = /instanceof\s+Error/.test(firstStmtText);
+
+            if (!hasTypeGuard) {
+              console.error(`❌ Rule 21 Catch-Block Type-Guard Violation in [${relativePath}]:`);
+              console.error(`   Catch block reading properties of [${varName}] must execute a type-guard check first.`);
+              violationCount++;
+            }
+          }
+        }
+      }
+    }
   }
 
 
@@ -838,7 +880,7 @@ async function main() {
     });
   } else {
     console.log("🔥 Starting AST Security Firewall Verification Sweep...");
-    const rawTargetPath = process.argv[2];
+    const rawTargetPath = process.argv.slice(2).find((arg) => !arg.startsWith("-"));
     const passed = await executeSweep(rawTargetPath);
     if (!passed) {
       process.exit(1);

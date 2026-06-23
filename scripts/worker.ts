@@ -1,4 +1,7 @@
 // compiler-trigger-comment-v4
+import { loadMonorepoEnv } from "./load-env.ts";
+loadMonorepoEnv();
+
 import { Worker, type Job } from "bullmq";
 import { trace, type Span } from "@opentelemetry/api";
 import { z } from "zod";
@@ -159,7 +162,7 @@ async function shutdown(signal: string) {
     await orchestratorService.close();
     console.log("Worker closed successfully.");
     process.exit(0);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error during worker shutdown:", error);
     process.exit(1);
   }

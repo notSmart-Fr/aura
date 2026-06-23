@@ -1,3 +1,6 @@
+import { loadMonorepoEnv } from "./load-env.ts";
+loadMonorepoEnv();
+
 import {
   AutoSubscribe,
   cli,

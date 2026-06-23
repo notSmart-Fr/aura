@@ -47,7 +47,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     return new Response("Forbidden", { status: 403 });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return new Response("Invalid request parameters", { status: 400 });
     }
@@ -90,7 +90,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
     
     return new Response("EVENT_RECEIVED", { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return new Response("Invalid payload schema", { status: 400 });
     }

@@ -92,7 +92,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           price: 95.0, // Default price fallback
         }));
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Vector search failed, falling back to standard list:", e);
     }
   }
@@ -138,7 +138,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           price: item.variants?.[0]?.price ? item.variants[0].price / 100 : 95.0,
         }));
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to load products:", e);
     }
   }
@@ -217,9 +217,11 @@ export async function action({ request }: ActionFunctionArgs) {
       toolResults: response.toolResults || [],
     });
   } catch (error: unknown) {
-    console.error("Agent generate error:", error);
-    const message = error instanceof Error ? error.message : "Failed to generate agent response";
-    return json({ error: message }, { status: 500 });
+    if (error instanceof Error) {
+      console.error("Agent generate error:", error);
+      return json({ error: error.message }, { status: 500 });
+    }
+    return json({ error: "Failed to generate agent response" }, { status: 500 });
   }
 }
 
