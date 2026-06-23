@@ -62,3 +62,5 @@ pnpm verify-agent
 # Start apps in monorepo (backend & storefront)
 pnpm dev
 ```
+
+**Full demo (all channels + telemetry):** see [Local Demo Runbook](.knowledge/architecture/demo-runbook.md) — Postgres, Redis, Ollama, Jaeger, worker, voice agent, and step-by-step test scenarios.

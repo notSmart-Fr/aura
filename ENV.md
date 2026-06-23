@@ -17,3 +17,5 @@ copy scripts\.env.template scripts\.env
 | `scripts/.env.template` | `scripts/.env` | `scripts/worker.ts`, `scripts/voice-agent.ts` |
 
 Root scripts load all three app env files via [`scripts/load-env.ts`](scripts/load-env.ts). Do not commit `.env` files.
+
+**Demo:** step-by-step run order (all processes + telemetry) → [`.knowledge/architecture/demo-runbook.md`](.knowledge/architecture/demo-runbook.md).

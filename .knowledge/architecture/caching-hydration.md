@@ -39,3 +39,5 @@ During initialization, the worker bootstraps a TypeORM `DataSource` using databa
 2. **Volatile Context Hydration**: Immediately after Kysely resolves, the worker queries the core `product_variant` table directly using the shared pool to retrieve volatile, fast-changing transactional columns (prices, SKUs, and availability/enabled flags).
 3. **AI Grounding**: The volatile variant metrics are constructed into a structural grounding context block and appended to the agent's prompt to ensure all generated replies reflect real-time storefront state.
 4. **Fault Propagation**: No part of the final generated string or transient errors is saved to a cache database. Pipeline failures (Gemini rate limits, timeouts) propagate naturally, triggering standard BullMQ job retries.
+
+Database and integration failures at cache boundaries are wrapped in typed domain errors (`DatabaseDomainError`, `IntegrationError`) — see [Boundary Exception Architecture](./boundary-exceptions.md).

@@ -1,5 +1,7 @@
 import pg from 'pg';
-import { z } from 'zod';
+
+import { DatabaseDomainError, IntegrationError } from '../common/errors.ts';
+import { getEmbedding } from './embedding.client.ts';
 
 const { Pool } = pg;
 
@@ -11,36 +13,13 @@ const pool = new Pool({
   }
 });
 
-// Zod schema to parse Ollama's response as required by storefront network isolation (Rule 14)
-const OllamaResponseSchema = z.object({
-  embedding: z.array(z.number())
-});
-
-export async function getEmbedding(text: string): Promise<number[]> {
-  const cleanText = text.replace(/\s+/g, ' ').trim();
-  
-  // Entire fetch call is wrapped/nested directly within the Zod .parse() statement to satisfy Rule 14 AST gate
-  const responseData = OllamaResponseSchema.parse(
-    await (await fetch('http://localhost:11434/api/embeddings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'all-minilm',
-        prompt: cleanText,
-        query: '' // satisfy AST firewall POST heuristic
-      })
-    })).json()
-  );
-  
-  return responseData.embedding;
-}
+export { getEmbedding };
 
 export async function getSemanticCache(text: string): Promise<unknown | null> {
+  const startedAt = Date.now();
   const embedding = await getEmbedding(text);
   const vectorStr = `[${embedding.join(',')}]`;
-  
+
   const client = await pool.connect();
   try {
     // raw SQL query targeting cache_embeddings containing the <=> operator (enforced by Rule 16 AST gate)
@@ -48,7 +27,7 @@ export async function getSemanticCache(text: string): Promise<unknown | null> {
       'SELECT response_json, (embedding <=> $1::vector) as distance FROM ai_cache.cache_embeddings ORDER BY embedding <=> $1::vector LIMIT 1',
       [vectorStr]
     );
-    
+
     if (result.rows.length > 0) {
       const row = result.rows[0];
       const distance = parseFloat(row.distance);
@@ -57,19 +36,52 @@ export async function getSemanticCache(text: string): Promise<unknown | null> {
       }
     }
     return null;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error instanceof DatabaseDomainError || error instanceof IntegrationError) {
+        throw error;
+      }
+      throw new DatabaseDomainError(
+        'GRAPH_TRAVERSAL_FAILED',
+        `Semantic cache lookup failed: ${error.message}`,
+        { method: 'getSemanticCache', duration: Date.now() - startedAt }
+      );
+    }
+    throw new DatabaseDomainError(
+      'GRAPH_TRAVERSAL_FAILED',
+      'Semantic cache lookup failed: Unknown cache read failure',
+      { method: 'getSemanticCache', duration: Date.now() - startedAt }
+    );
   } finally {
     client.release();
   }
 }
 
 export async function setSemanticCache(text: string, embedding: number[], responseJson: unknown): Promise<void> {
+  const startedAt = Date.now();
   const vectorStr = `[${embedding.join(',')}]`;
-  
+
   const client = await pool.connect();
   try {
     await client.query(
       'INSERT INTO ai_cache.cache_embeddings (text, embedding, response_json) VALUES ($1, $2::vector, $3)',
       [text, vectorStr, JSON.stringify(responseJson)]
+    );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error instanceof DatabaseDomainError || error instanceof IntegrationError) {
+        throw error;
+      }
+      throw new DatabaseDomainError(
+        'CACHE_WRITE_FAILED',
+        `Semantic cache write failed: ${error.message}`,
+        { method: 'setSemanticCache', length: embedding.length, duration: Date.now() - startedAt }
+      );
+    }
+    throw new DatabaseDomainError(
+      'CACHE_WRITE_FAILED',
+      'Semantic cache write failed: Unknown cache write failure',
+      { method: 'setSemanticCache', length: embedding.length, duration: Date.now() - startedAt }
     );
   } finally {
     client.release();

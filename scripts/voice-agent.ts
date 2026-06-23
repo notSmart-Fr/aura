@@ -1,3 +1,4 @@
+import { sdk } from './otel-bootstrap.ts';
 import { loadMonorepoEnv } from "./load-env.ts";
 loadMonorepoEnv();
 
@@ -72,6 +73,7 @@ async function shutdown(signal: string) {
   console.log(`Received ${signal}. Shutting down voice agent...`);
   try {
     await orchestrator.close();
+    await sdk.shutdown();
     console.log("Voice agent closed successfully.");
     process.exit(0);
   } catch (error: unknown) {

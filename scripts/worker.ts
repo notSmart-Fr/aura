@@ -1,4 +1,5 @@
 // compiler-trigger-comment-v4
+import { sdk } from './otel-bootstrap.ts';
 import { loadMonorepoEnv } from "./load-env.ts";
 loadMonorepoEnv();
 
@@ -160,6 +161,7 @@ async function shutdown(signal: string) {
   try {
     await worker.close();
     await orchestratorService.close();
+    await sdk.shutdown();
     console.log("Worker closed successfully.");
     process.exit(0);
   } catch (error: unknown) {

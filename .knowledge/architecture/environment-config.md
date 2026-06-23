@@ -230,6 +230,8 @@ node --no-warnings --experimental-strip-types scripts/worker.ts
 node --no-warnings --experimental-strip-types scripts/voice-agent.ts dev
 ```
 
+Full infrastructure prerequisites (Postgres, Redis, Ollama, Jaeger OTLP), seed steps, demo test scripts, and telemetry verification: [demo-runbook.md](./demo-runbook.md).
+
 ---
 
 ### 10. Do Not Duplicate

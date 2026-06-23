@@ -766,9 +766,35 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         const block = catchClause.getBlock();
         const statements = block.getStatements();
 
+        // Rule E2: Empty catch blocks are forbidden
+        if (statements.length === 0) {
+          console.error(`❌ Rule E2 Empty Catch Gate Violation in [${relativePath}]:`);
+          console.error(`   Catch block for [${varName}] must log, trace, or re-throw — silent suppression is forbidden.`);
+          violationCount++;
+        }
+
         if (statements.length > 0) {
           const firstStmt = statements[0];
           const blockText = block.getText();
+
+          // Rule E1: Ban lazy 'as any' casts inside catch blocks
+          const lazyAnyCast = new RegExp(`\\(\\s*${varName}\\s+as\\s+any\\s*\\)|<\\s*any\\s*>\\s*${varName}\\b`).test(blockText);
+          if (lazyAnyCast) {
+            console.error(`❌ Rule E1 Lazy Catch Cast Gate Violation in [${relativePath}]:`);
+            console.error(`   Catch variable [${varName}] must not be cast with 'as any'.`);
+            violationCount++;
+          }
+
+          // Rule E1: .message access requires instanceof Error or domain error guard
+          const hasMessageAccess = new RegExp(`\\b${varName}\\.message\\b`).test(blockText);
+          const hasSafeGuard = new RegExp(
+            `${varName}\\s+instanceof\\s+(Error|IntegrationError|DatabaseDomainError)`
+          ).test(blockText);
+          if (hasMessageAccess && !hasSafeGuard) {
+            console.error(`❌ Rule E1 Catch Message Access Gate Violation in [${relativePath}]:`);
+            console.error(`   Catch block accessing [${varName}.message] must guard with instanceof Error or a domain error class.`);
+            violationCount++;
+          }
 
           // Verify if the variable is used for UNSAFE property access (dot or bracket notation)
           const hasPropertyAccess = new RegExp(`\\b${varName}\\.\\w+|\\b${varName}\\[`).test(blockText);
@@ -783,6 +809,46 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
               violationCount++;
             }
           }
+        }
+      }
+    }
+
+    // Rule E3: PII leak prevention in error metadata and console.error calls
+    const piiKeyPattern = /phone|email|transcript|text/i;
+    const domainErrorNames = new Set(["IntegrationError", "DatabaseDomainError"]);
+
+    for (const ne of newExpressions) {
+      const ctorName = ne.getExpression().getText();
+      if (!domainErrorNames.has(ctorName)) continue;
+
+      const args = ne.getArguments();
+      if (args.length < 3) continue;
+
+      const metaArg = args[2];
+      if (!Node.isObjectLiteralExpression(metaArg)) continue;
+
+      for (const prop of metaArg.getProperties()) {
+        if (!Node.isPropertyAssignment(prop) && !Node.isShorthandPropertyAssignment(prop)) continue;
+        const propName = Node.isPropertyAssignment(prop)
+          ? prop.getName()
+          : prop.getName();
+        if (piiKeyPattern.test(propName)) {
+          console.error(`❌ Rule E3 Error Metadata PII Gate Violation in [${relativePath}]:`);
+          console.error(`   Domain error metadata key [${propName}] may contain raw PII — use structural attributes only.`);
+          violationCount++;
+        }
+      }
+    }
+
+    for (const call of callExpressions) {
+      if (call.getExpression().getText() !== "console.error") continue;
+
+      for (const arg of call.getArguments()) {
+        if (!Node.isIdentifier(arg)) continue;
+        if (piiKeyPattern.test(arg.getText())) {
+          console.error(`❌ Rule E3 Console Error PII Gate Violation in [${relativePath}]:`);
+          console.error(`   console.error must not pass unvetted PII identifier [${arg.getText()}].`);
+          violationCount++;
         }
       }
     }

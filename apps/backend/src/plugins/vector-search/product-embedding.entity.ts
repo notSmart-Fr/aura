@@ -9,7 +9,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
  * text or float array, eliminating the need for `::vector` casting hacks
  * in raw SQL queries.
  *
- * Dimensions: 768 — matches the `all-minilm` Ollama embedding model output.
+ * Dimensions: 768 — matches gemini-embedding-2 output.
  */
 @Entity({ name: 'product' })
 export class ProductEmbedding {

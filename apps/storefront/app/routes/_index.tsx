@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { z } from "zod";
 import { shopAgent } from "../mastra/agents/shopAgent";
 import { Layout } from "../domains/common/layout.component";
+import { DatabaseDomainError, IntegrationError } from "../domains/common/errors";
 import { fetchActiveOrder } from "../domains/catalog/catalog.queries";
 import { getSessionToken } from "../domains/common/session.server";
 
@@ -218,6 +219,10 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   } catch (error: unknown) {
     if (error instanceof Error) {
+      if (error instanceof IntegrationError || error instanceof DatabaseDomainError) {
+        console.error("Agent boundary error:", error.code, error.meta);
+        return json({ error: error.message, code: error.code }, { status: 500 });
+      }
       console.error("Agent generate error:", error);
       return json({ error: error.message }, { status: 500 });
     }
@@ -266,6 +271,8 @@ export default function HomePage() {
     if (fetcher.data && fetcher.state === "idle") {
       interface FetcherData {
         text?: string;
+        error?: string;
+        code?: string;
         toolResults?: Array<{
           result?: {
             products?: MessageProduct[];
@@ -280,6 +287,14 @@ export default function HomePage() {
             sender: "agent",
             text: data.text || "Here is what I found:",
             data: data.toolResults?.[0]?.result // Capture tool results if present
+          }
+        ]);
+      } else if (data.error) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "agent",
+            text: `[${data.code ?? "ERROR"}] ${data.error}`,
           }
         ]);
       }

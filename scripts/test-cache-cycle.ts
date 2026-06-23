@@ -39,7 +39,7 @@ async function runTest() {
     throw new Error('Expected first lookup to return null (CACHE MISS) on clean DB!');
   }
   
-  console.log(`[2] Generating embedding via Ollama...`);
+  console.log(`[2] Generating embedding via gemini-embedding-2...`);
   const embedding = await getEmbedding(queryText);
   console.log(`Successfully generated embedding (${embedding.length} dimensions)`);
   
@@ -52,7 +52,7 @@ async function runTest() {
   const secondLookup = await getSemanticCache(queryText);
   console.log(`Second lookup result (Expected: mock response):`, secondLookup);
   
-  if (!secondLookup || secondLookup.response !== mockResponse.response) {
+  if (!secondLookup || (secondLookup as { response: string }).response !== mockResponse.response) {
     throw new Error('Expected cache hit, but got unexpected or null result.');
   }
   
