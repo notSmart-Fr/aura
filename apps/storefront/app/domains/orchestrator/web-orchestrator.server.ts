@@ -3,6 +3,7 @@ import { OrchestratorService } from "@dtc/ai-core/orchestrator";
 export interface ProcessWebIntentInput {
   text: string;
   platformUserId: string;
+  vendureToken?: string | null;
 }
 
 export interface ProcessWebIntentResult {
@@ -27,6 +28,7 @@ export async function processWebIntent(
     text: input.text,
     channel: "web",
     platformUserId: input.platformUserId,
+    vendureToken: input.vendureToken,
   });
 
   return {

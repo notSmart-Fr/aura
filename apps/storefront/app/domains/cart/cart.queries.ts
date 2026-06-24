@@ -32,12 +32,28 @@ const REMOVE_ORDER_LINE = `
   }
 `;
 
+interface OrderMutationResult {
+  id?: string;
+  code?: string;
+  totalQuantity?: number;
+  errorCode?: string;
+  message?: string;
+}
+
+interface AdjustOrderLineData {
+  adjustOrderLine: OrderMutationResult;
+}
+
+interface RemoveOrderLineData {
+  removeOrderLine: OrderMutationResult;
+}
+
 export async function adjustOrderLine(
   orderLineId: string,
   quantity: number,
   token: string | null
-): Promise<{ order?: any; error?: string }> {
-  const result = await runQuery<any>(ADJUST_ORDER_LINE, { orderLineId, quantity }, token);
+): Promise<{ order?: OrderMutationResult; error?: string }> {
+  const result = await runQuery<AdjustOrderLineData>(ADJUST_ORDER_LINE, { orderLineId, quantity }, token);
   const res = result.data.adjustOrderLine;
   if (res.errorCode) {
     return { error: res.message };
@@ -48,8 +64,8 @@ export async function adjustOrderLine(
 export async function removeOrderLine(
   orderLineId: string,
   token: string | null
-): Promise<{ order?: any; error?: string }> {
-  const result = await runQuery<any>(REMOVE_ORDER_LINE, { orderLineId }, token);
+): Promise<{ order?: OrderMutationResult; error?: string }> {
+  const result = await runQuery<RemoveOrderLineData>(REMOVE_ORDER_LINE, { orderLineId }, token);
   const res = result.data.removeOrderLine;
   if (res.errorCode) {
     return { error: res.message };

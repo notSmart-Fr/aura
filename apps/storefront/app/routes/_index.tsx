@@ -93,6 +93,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "Message is required" }, { status: 400 });
   }
 
+  const vendureToken = await getSessionToken(request);
   const { userId: platformUserId, headers: sessionHeaders } =
     await getOrCreateChatUserId(request);
 
@@ -100,6 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const response = await processWebIntent({
       text: message,
       platformUserId,
+      vendureToken,
     });
 
     const responsePayload = {

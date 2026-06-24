@@ -33,7 +33,19 @@ export const modifyCart = createTool({
   id: "modifyCart",
   description: "Add a specific product variant to the customer active shopping cart order",
   inputSchema: ModifyCartInputSchema,
-  execute: async (input) => {
+  execute: async (input, context) => {
+    const vendureToken = context?.requestContext?.get("vendureToken") as
+      | string
+      | null
+      | undefined;
+
+    const extraHeaders: Record<string, string> = {
+      "Idempotency-Key": input.idempotencyKey,
+    };
+    if (vendureToken) {
+      extraHeaders["vendure-auth-token"] = vendureToken;
+    }
+
     const graphqlMutation = `
       mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
         addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
@@ -54,9 +66,7 @@ export const modifyCart = createTool({
         productVariantId: input.productVariantId,
         quantity: input.quantity,
       },
-      {
-        "Idempotency-Key": input.idempotencyKey,
-      },
+      extraHeaders,
     );
 
     return { success: true, cart: data.addItemToOrder };

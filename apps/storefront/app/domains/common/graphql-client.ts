@@ -9,6 +9,7 @@ const GraphQLResponseSchema = z.object({
   data: z.unknown().optional(),
   errors: z.array(GraphQLErrorSchema).optional(),
 });
+const FetchResponseSchema = z.promise(z.instanceof(Response));
 
 export interface GraphQLResponse<T> {
   data: T;
@@ -29,13 +30,13 @@ export async function runQuery<T, V = Record<string, unknown>>(
     headers["vendure-auth-token"] = token;
   }
 
-  const response = (await z.unknown().parseAsync(
+  const response = await FetchResponseSchema.parseAsync(
     fetch(VENDURE_API_URL, {
       method: "POST",
       headers,
       body: JSON.stringify({ query, variables }),
     }),
-  )) as Response;
+  );
 
   if (!response.ok) {
     throw new IntegrationError(

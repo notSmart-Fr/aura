@@ -9,17 +9,18 @@ describe("runVendureQuery", () => {
   it("returns typed data on a successful GraphQL response", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          data: {
-            searchCatalog: {
-              items: [{ productId: "1", productName: "Overcoat" }],
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              searchCatalog: {
+                items: [{ productId: "1", productName: "Overcoat" }],
+              },
             },
-          },
-        }),
-      }),
+          }),
+          { status: 200 },
+        ),
+      ),
     );
 
     const { runVendureQuery } = await import("../vendure-client.js");
@@ -33,11 +34,7 @@ describe("runVendureQuery", () => {
   it("throws IntegrationError when Vendure returns HTTP 500", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-      }),
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({}), { status: 500 })),
     );
 
     const { runVendureQuery } = await import("../vendure-client.js");
@@ -50,13 +47,11 @@ describe("runVendureQuery", () => {
   it("throws IntegrationError when GraphQL returns errors", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          errors: [{ message: "Invalid query" }],
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ errors: [{ message: "Invalid query" }] }), {
+          status: 200,
         }),
-      }),
+      ),
     );
 
     const { runVendureQuery } = await import("../vendure-client.js");

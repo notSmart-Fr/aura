@@ -430,6 +430,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
         // A. Verify they are nested within a Zod .parse() node
         let currentParent: Node | undefined = call.getParent();
         let isParsed = false;
+        let parseCallExpr: import("ts-morph").CallExpression | undefined;
         while (currentParent) {
           if (Node.isCallExpression(currentParent)) {
             const parentExpr = currentParent.getExpression();
@@ -437,6 +438,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
               const propName = parentExpr.getName();
               if (propName === "parse" || propName === "parseAsync" || propName === "safeParse") {
                 isParsed = true;
+                parseCallExpr = currentParent;
                 break;
               }
             }
@@ -448,6 +450,16 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
           console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
           console.error(`   Network call [${call.getText().substring(0, 40)}...] is not nested within a Zod parse node.`);
           violationCount++;
+        } else if (parseCallExpr) {
+          const parseParentExpr = parseCallExpr.getExpression();
+          if (Node.isPropertyAccessExpression(parseParentExpr)) {
+            const schemaText = parseParentExpr.getExpression().getText();
+            if (schemaText === "z.unknown()" || schemaText === "z.any()") {
+              console.error(`❌ Rule 14 Network Isolation Gate Violation in [${relativePath}]:`);
+              console.error(`   Network call [${call.getText().substring(0, 40)}...] uses z.unknown()/z.any() — not a structural schema.`);
+              violationCount++;
+            }
+          }
         }
 
         // B. Verify that mutating requests pass an Idempotency-Key header literal.
@@ -719,12 +731,38 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
       }
     }
 
-    // 20. Anti-Cheat: z.any().parse() Prevention Gate
+    const typeRefs = sourceFile.getDescendantsOfKind(SyntaxKind.TypeReference);
+    for (const ref of typeRefs) {
+      const typeArgs = ref.getTypeArguments();
+      for (const arg of typeArgs) {
+        if (arg.getKind() === SyntaxKind.AnyKeyword) {
+          console.error(`❌ Rule 19 Explicit Any Gate Violation in [${relativePath}]:`);
+          console.error(`   Generic type argument 'any' discovered on "${ref.getText()}". Type safety is mandatory.`);
+          violationCount++;
+        }
+      }
+    }
+
+    const functions = [
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.FunctionDeclaration),
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.ArrowFunction),
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.MethodDeclaration),
+    ];
+    for (const fn of functions) {
+      const returnType = fn.getReturnTypeNode();
+      if (returnType && /\bany\b/.test(returnType.getText())) {
+        console.error(`❌ Rule 19 Explicit Any Gate Violation in [${relativePath}]:`);
+        console.error(`   Return type containing 'any' discovered on function. Type safety is mandatory.`);
+        violationCount++;
+      }
+    }
+
+    // 20. Anti-Cheat: z.any()/z.unknown().parse* Prevention Gate
     for (const call of callExpressions) {
-      if (isZodAnyParseCheat(call)) {
+      if (isZodTrivialParseCheat(call)) {
         const lineNumber = call.getStartLineNumber();
         console.error(`❌ Rule 20 Anti-Cheat Violation in [${relativePath}]: Line ${lineNumber}`);
-        console.error(`   Discovered 'z.any().parse()' network gate bypass shortcut.`);
+        console.error(`   Discovered 'z.any()/z.unknown().parse*()' network gate bypass shortcut.`);
         console.error(`   Explicit structural schema validation is strictly mandatory for isolation boundaries.`);
         violationCount++;
       }
@@ -857,22 +895,21 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
   return passed;
 }
 
-function isZodAnyParseCheat(node: any): boolean {
+function isZodTrivialParseCheat(node: any): boolean {
   const expression = node.getExpression();
   if (!Node.isPropertyAccessExpression(expression)) return false;
 
-  // Checks if the method being called is ".parse(...)"
-  if (expression.getName() !== "parse") return false;
+  const methodName = expression.getName();
+  if (methodName !== "parse" && methodName !== "parseAsync" && methodName !== "safeParse") return false;
 
-  // Travels up the chain to see if the caller was "z.any()"
   const subExpression = expression.getExpression();
   if (!Node.isCallExpression(subExpression)) return false;
 
   const anyAccess = subExpression.getExpression();
   if (!Node.isPropertyAccessExpression(anyAccess)) return false;
 
-  // Verifies the exact chain signature: z -> any
-  return anyAccess.getExpression().getText() === "z" && anyAccess.getName() === "any";
+  return anyAccess.getExpression().getText() === "z" &&
+    (anyAccess.getName() === "any" || anyAccess.getName() === "unknown");
 }
 
 const gateResultsPath = path.join(process.cwd(), ".gate-results.json");

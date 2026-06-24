@@ -6,13 +6,11 @@ import {
   AutoSubscribe,
   cli,
   defineAgent,
-  inference,
   type JobContext,
   ServerOptions,
   voice,
 } from "@livekit/agents";
 import * as cartesia from "@livekit/agents-plugin-cartesia";
-import * as deepgram from "@livekit/agents-plugin-deepgram";
 
 import { OrchestratorService } from "@dtc/ai-core/orchestrator";
 
@@ -27,9 +25,9 @@ export default defineAgent({
     const platformUserId = participant.identity;
 
     const session = new voice.AgentSession({
-      vad: new inference.VAD(),
-      stt: new deepgram.STT({ model: "nova-3" }),
-      tts: new cartesia.TTS({ voice: "sonic-commercial-english" }),
+      stt: new cartesia.STT({ model: "ink-2" }),
+      tts: new cartesia.TTS({ voice: "f786b574-daa5-4673-aa0c-cbe3e8534c02" }),
+      turnHandling: { turnDetection: "stt" },
     });
 
     const agent = new voice.Agent({

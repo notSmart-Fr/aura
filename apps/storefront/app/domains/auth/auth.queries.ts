@@ -91,8 +91,23 @@ export interface CustomerData {
   };
 }
 
+interface LoginResult {
+  id?: string;
+  identifier?: string;
+  errorCode?: string;
+  message?: string;
+}
+
+interface LoginMutationData {
+  login: LoginResult;
+}
+
+interface LogoutMutationData {
+  logout: { success: boolean };
+}
+
 export async function login(username: string, password: string, token: string | null) {
-  const result = await runQuery<any>(LOGIN, { username, password }, token);
+  const result = await runQuery<LoginMutationData>(LOGIN, { username, password }, token);
   return {
     login: result.data.login,
     token: result.token,
@@ -100,7 +115,7 @@ export async function login(username: string, password: string, token: string | 
 }
 
 export async function logout(token: string | null) {
-  const result = await runQuery<any>(LOGOUT, {}, token);
+  const result = await runQuery<LogoutMutationData>(LOGOUT, {}, token);
   return {
     logout: result.data.logout,
     token: result.token,

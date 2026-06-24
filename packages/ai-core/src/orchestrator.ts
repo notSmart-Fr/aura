@@ -3,6 +3,7 @@ import { z } from "zod";
 import Redis from "ioredis";
 import { DataSource } from "typeorm";
 import { Kysely, PostgresDialect, sql } from "kysely";
+import { RequestContext } from "@mastra/core/request-context";
 
 import { getSemanticCache, setSemanticCache, getEmbedding } from "./cache-engine.js";
 import { expandProductGraph, formatGraphContext } from "./graph-retriever.js";
@@ -69,6 +70,7 @@ export interface ProcessIntentInput {
   text: string;
   channel: string;
   platformUserId: string;
+  vendureToken?: string | null;
 }
 
 export interface ProcessIntentResult {
@@ -390,7 +392,9 @@ export class OrchestratorService {
     ];
 
     console.log(`[OrchestratorService] Triggering shopAgent...`);
-    const result = await shopAgent.generate(agentMessages);
+    const requestContext = new RequestContext();
+    requestContext.set("vendureToken", input.vendureToken ?? null);
+    const result = await shopAgent.generate(agentMessages, { requestContext });
 
     const responseText =
       result.steps.length >= 5 && result.finishReason !== "stop"

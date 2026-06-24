@@ -10,13 +10,14 @@ const GraphQLResponseSchema = z.object({
   data: z.record(z.string(), z.unknown()).optional(),
   errors: z.array(GraphQLErrorSchema).optional(),
 });
+const FetchResponseSchema = z.promise(z.instanceof(Response));
 
 export async function runVendureQuery<T>(
   query: string,
   variables?: Record<string, unknown>,
   extraHeaders?: Record<string, string>,
 ): Promise<T> {
-  const response = (await z.unknown().parseAsync(
+  const response = await FetchResponseSchema.parseAsync(
     fetch(VENDURE_API_URL, {
       method: "POST",
       headers: {
@@ -25,7 +26,7 @@ export async function runVendureQuery<T>(
       },
       body: JSON.stringify({ query, variables }),
     }),
-  )) as Response;
+  );
 
   if (!response.ok) {
     throw new IntegrationError(
