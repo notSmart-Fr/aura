@@ -13,6 +13,7 @@
     "./embedding.client": "./src/embedding.client.ts",
     "./embedding-config": "./src/embedding-config.ts",
     "./errors": "./src/errors.ts",
+    "./vendure-client": "./src/vendure-client.ts",
     "./tools/searchCatalogTool": "./src/tools/searchCatalogTool.ts",
     "./tools/exploreProductTool": "./src/tools/exploreProductTool.ts",
     "./tools/modifyCartTool": "./src/tools/modifyCartTool.ts",

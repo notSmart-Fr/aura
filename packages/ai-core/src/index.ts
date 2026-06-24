@@ -1,4 +1,5 @@
 export { IntegrationError, DatabaseDomainError } from "./errors.js";
+export { runVendureQuery } from "./vendure-client.js";
 export { getEmbedding } from "./embedding.client.js";
 export { embeddingConfig } from "./embedding-config.js";
 export { getSemanticCache, setSemanticCache } from "./cache-engine.js";
