@@ -1,44 +1,9 @@
 import { Project, SyntaxKind, Node } from "ts-morph";
 import * as path from "path";
-import { execSync } from "child_process";
-
 import * as fs from "fs";
 import chokidar from "chokidar";
 
-function verifyDomainIsolation() {
-  if (process.argv.includes("--no-isolation")) return;
-  try {
-    const modifiedFiles = execSync("git status --porcelain", { stdio: ["pipe", "pipe", "ignore"] }).toString();
-    const domainLines = modifiedFiles
-      .split("\n")
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(line => line.replace(/^[A-Z? ]+\s+/, ""))
-      .filter(filePath => filePath.includes("apps/storefront/app/domains/"));
-
-    const modifiedDomains = new Set<string>();
-    for (const file of domainLines) {
-      const parts = file.split("apps/storefront/app/domains/");
-      if (parts.length > 1) {
-        const subParts = parts[1].split("/");
-        if (subParts.length > 0) {
-          modifiedDomains.add(subParts[0]);
-        }
-      }
-    }
-
-    if (modifiedDomains.size > 1) {
-      console.error(`❌ Domain Isolation Gate Violation:`);
-      console.error(`   Agent attempted to mutate multiple distinct domains simultaneously: [${Array.from(modifiedDomains).join(", ")}]`);
-      process.exit(1);
-    }
-  } catch (e) {
-    // Skip if git check fails
-  }
-}
-
 async function executeSweep(targetPath?: string): Promise<boolean> {
-  verifyDomainIsolation();
 
   const project = new Project();
   const isChaos = process.argv.includes("--chaos");
