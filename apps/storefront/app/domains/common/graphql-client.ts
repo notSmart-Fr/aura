@@ -11,6 +11,42 @@ const GraphQLResponseSchema = z.object({
 });
 const FetchResponseSchema = z.promise(z.instanceof(Response));
 
+function isTransientConnectionError(error: unknown): boolean {
+  if (!(error instanceof TypeError) || error.message !== "fetch failed") {
+    return false;
+  }
+
+  const cause = error.cause;
+  if (cause && typeof cause === "object" && "code" in cause) {
+    const code = (cause as { code?: string }).code;
+    return code === "ECONNREFUSED" || code === "ETIMEDOUT";
+  }
+
+  return false;
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  attempts = 5,
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await FetchResponseSchema.parseAsync(fetch(url, init));
+    } catch (error: unknown) {
+      lastError = error;
+      if (!isTransientConnectionError(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+
+  throw lastError;
+}
+
 export interface GraphQLResponse<T> {
   data: T;
   errors?: Array<{ message: string }>;
@@ -30,13 +66,11 @@ export async function runQuery<T, V = Record<string, unknown>>(
     headers["vendure-auth-token"] = token;
   }
 
-  const response = await FetchResponseSchema.parseAsync(
-    fetch(VENDURE_API_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ query, variables }),
-    }),
-  );
+  const response = await fetchWithRetry(VENDURE_API_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ query, variables }),
+  });
 
   if (!response.ok) {
     throw new IntegrationError(

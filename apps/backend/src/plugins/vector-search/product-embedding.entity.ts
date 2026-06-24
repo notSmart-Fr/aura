@@ -24,9 +24,8 @@ export class ProductEmbedding {
    */
   @Column({
     name: 'customFieldsEmbedding',
-    type: 'vector', // Tells TypeORM's Postgres driver to generate a native vector column
-    length: 768,    // Configures the precise dimensionality array size
+    type: 'text',
     nullable: true,
   })
-  customFieldsEmbedding: number[];
+  customFieldsEmbedding: string | null;
 }

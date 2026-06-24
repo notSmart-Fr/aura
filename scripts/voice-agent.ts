@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { sdk } from './otel-bootstrap.ts';
 import { loadMonorepoEnv } from "./load-env.ts";
 loadMonorepoEnv();
@@ -15,6 +16,15 @@ import * as cartesia from "@livekit/agents-plugin-cartesia";
 import { OrchestratorService } from "@dtc/ai-core/orchestrator";
 
 const orchestrator = new OrchestratorService();
+
+function sanitizeForTTS(text: string): string {
+  return text
+    .replace(/([.!?])([A-Z])/g, "$1 $2")  // add space between sentences if missing
+    .replace(/["""]/g, "")                  // strip quotation marks
+    .replace(/[*_~`#]/g, "")               // strip markdown formatting
+    .replace(/\s{2,}/g, " ")               // collapse multiple spaces
+    .trim();
+}
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
@@ -54,7 +64,7 @@ export default defineAgent({
           text: transcribedText,
         });
 
-        const aiReply = result.text;
+        const aiReply = sanitizeForTTS(result.text);
         console.log(`[Voice Boundary] Orchestrator Yielded text: ${aiReply}`);
 
         await session.say(aiReply);
@@ -84,6 +94,4 @@ async function shutdown(signal: string) {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-if (require.main === module) {
-  cli.runApp(new ServerOptions({ agent: __filename }));
-}
+cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));

@@ -16,6 +16,7 @@ export class GeminiEmbeddingService {
           body: JSON.stringify({
             model: 'models/gemini-embedding-2',
             content: { parts: [{ text }] },
+            outputDimensionality: 768,
           }),
         }
       );
