@@ -1,0 +1,5 @@
+# Optional override for remote Neon semantic cache.
+# Copy to docker-compose.override.yml and set PAYLOAD_DATABASE_URL to Neon in apps/storefront/.env
+#
+# Local dev default: point PAYLOAD_DATABASE_URL at the compose Postgres instance:
+#   postgresql://postgres:postgres@localhost:5432/vendure

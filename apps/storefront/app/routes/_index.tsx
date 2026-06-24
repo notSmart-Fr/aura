@@ -3,11 +3,11 @@ import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, Link } from "@remix-run/react";
 import React, { useState, useEffect, useRef } from "react";
 import { z } from "zod";
-import { shopAgent } from "../mastra/agents/shopAgent";
 import { Layout } from "../domains/common/layout.component";
 import { DatabaseDomainError, IntegrationError } from "../domains/common/errors";
 import { fetchActiveOrder } from "../domains/catalog/catalog.queries";
-import { getSessionToken } from "../domains/common/session.server";
+import { getSessionToken, getOrCreateChatUserId } from "../domains/common/session.server";
+import { processWebIntent } from "../domains/orchestrator/web-orchestrator.server";
 
 
 interface ProductItem {
@@ -201,7 +201,6 @@ async function authenticateUser(request: Request) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  // Verify session and user role for security gate compliance
   const { session, userRole } = await authenticateUser(request);
 
   const formData = await request.formData();
@@ -210,13 +209,27 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "Message is required" }, { status: 400 });
   }
 
+  const { userId: platformUserId, headers: sessionHeaders } =
+    await getOrCreateChatUserId(request);
+
   try {
-    const response = await shopAgent.generate(message);
-    return json({
+    const response = await processWebIntent({
+      text: message,
+      platformUserId,
+    });
+
+    const responsePayload = {
       message,
       text: response.text,
-      toolResults: response.toolResults || [],
-    });
+      toolResults: response.toolResults,
+      fromCache: response.fromCache ?? false,
+    };
+
+    if (sessionHeaders) {
+      return json(responsePayload, { headers: sessionHeaders });
+    }
+
+    return json(responsePayload);
   } catch (error: unknown) {
     if (error instanceof Error) {
       if (error instanceof IntegrationError || error instanceof DatabaseDomainError) {

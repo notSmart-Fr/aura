@@ -64,6 +64,7 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.ts");
     project.addSourceFilesAtPaths("apps/storefront/app/**/*.tsx");
     project.addSourceFilesAtPaths("apps/backend/src/domains/**/*.ts");
+    project.addSourceFilesAtPaths("packages/ai-core/src/**/*.ts");
     for (const scriptPath of ["scripts/worker.ts", "scripts/voice-agent.ts"]) {
       if (fs.existsSync(scriptPath)) {
         const existing = project.getSourceFile(path.resolve(process.cwd(), scriptPath));
@@ -101,7 +102,11 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     }
 
     // 2. Unbound Agent Parameter Gate (Mastra Tools)
-    if (sourceFile.getFilePath().includes("app/domains") && sourceFile.getFilePath().endsWith("Tool.ts")) {
+    const normalizedPath = sourceFile.getFilePath().replace(/\\/g, "/");
+    const isMastraToolFile =
+      (normalizedPath.includes("app/domains") && normalizedPath.endsWith("Tool.ts")) ||
+      (normalizedPath.includes("packages/ai-core/src/tools/") && normalizedPath.endsWith("Tool.ts"));
+    if (isMastraToolFile) {
       const variables = sourceFile.getVariableDeclarations();
       for (const v of variables) {
         if (v.isExported()) {
@@ -350,9 +355,11 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     }
 
     // 13. E-commerce Idempotency and Bounds Gate
-    if (sourceFile.getFilePath().includes("app/domains") && sourceFile.getFilePath().endsWith("Tool.ts")) {
-      const isCartOrCheckout = sourceFile.getFilePath().includes("app/domains/cart/") || sourceFile.getFilePath().includes("app/domains/checkout/");
-      if (isCartOrCheckout) {
+    const isCartOrCheckoutTool =
+      normalizedPath.includes("app/domains/cart/") ||
+      normalizedPath.includes("app/domains/checkout/") ||
+      normalizedPath.includes("packages/ai-core/src/tools/modifyCartTool");
+    if (isMastraToolFile && isCartOrCheckoutTool) {
         const variables = sourceFile.getVariableDeclarations();
         for (const v of variables) {
           if (v.isExported()) {
@@ -436,7 +443,6 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
                   }
                 }
               }
-            }
           }
         }
       }
@@ -625,7 +631,10 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     }
 
     // 16. Cosine Similarity Operator Gate (Semantic Cache DB queries)
-    if (sourceFile.getFilePath().replace(/\\/g, "/").includes("apps/storefront/app/domains/ai-cache")) {
+    if (
+      normalizedPath.includes("apps/storefront/app/domains/ai-cache") ||
+      normalizedPath.includes("packages/ai-core/src/cache-engine")
+    ) {
       const fileText = sourceFile.getText();
       if (fileText.includes("cache_embeddings")) {
         const stringsAndTemplates = [
@@ -659,7 +668,10 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     }
 
     // 17. Context-Window Prompt Suffix Optimization Gate
-    if (sourceFile.getFilePath().replace(/\\/g, "/").includes("apps/storefront/app/domains/ai-agents")) {
+    if (
+      normalizedPath.includes("apps/storefront/app/domains/ai-agents") ||
+      normalizedPath.includes("packages/ai-core/src/extractor")
+    ) {
       const templates = sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression);
       for (const template of templates) {
         const text = template.getText();
@@ -924,7 +936,7 @@ async function main() {
     // Initial full sweep on startup
     await executeSweep();
 
-    const watcher = chokidar.watch(["apps/storefront/app/domains/**/*.ts*", "scripts/worker.ts", "scripts/voice-agent.ts", "apps/backend/src/domains/**/*.ts"], {
+    const watcher = chokidar.watch(["apps/storefront/app/domains/**/*.ts*", "packages/ai-core/src/**/*.ts", "scripts/worker.ts", "scripts/voice-agent.ts", "apps/backend/src/domains/**/*.ts"], {
       ignored: /(^|[\/\\])\../,
       persistent: true,
       ignoreInitial: true,

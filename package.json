@@ -13,7 +13,8 @@
     "build": "pnpm run check:firewall && pnpm -r build",
     "start": "turbo start",
     "lint": "turbo lint",
-    "test": "turbo test",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "backend:seed": "turbo seed --filter=@dtc/backend",
     "backend:dev": "turbo dev --filter=@dtc/backend",
     "storefront:dev": "turbo dev --filter=@dtc/storefront"
@@ -26,9 +27,11 @@
     "ts-morph": "^22.0.0",
     "ts-node": "^10.9.2",
     "turbo": "^2.0.14",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@dtc/ai-core": "workspace:*",
     "@ai-sdk/deepseek": "^2.0.39",
     "@ai-sdk/openai": "^3.0.73",
     "@livekit/agents": "^1.4.8",

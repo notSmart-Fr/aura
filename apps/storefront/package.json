@@ -12,9 +12,11 @@
     "dev": "vite",
     "build": "vite build",
     "start": "remix-serve build/server/index.js",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "vitest run --config ../../vitest.config.ts"
   },
   "dependencies": {
+    "@dtc/ai-core": "workspace:*",
     "@headlessui/react": "^2.2.0",
     "@mastra/core": "latest",
     "@opentelemetry/api": "^1.9.0",

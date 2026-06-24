@@ -7,7 +7,7 @@ import { Worker, type Job } from "bullmq";
 import { trace, type Span } from "@opentelemetry/api";
 import { z } from "zod";
 
-import { OrchestratorService } from "../apps/backend/src/domains/orchestrator/orchestrator.service";
+import { OrchestratorService } from "@dtc/ai-core/orchestrator";
 
 const tracer = trace.getTracer("whatsapp-worker");
 
@@ -130,13 +130,13 @@ const worker = new Worker(
       throw new Error(`[Queue Worker] No platform adapter registered for channel: ${channel}`);
     }
 
-    const responseTexts = await orchestratorService.processIntent({
+    const result = await orchestratorService.processIntent({
       text: normalizedText,
       channel,
       platformUserId,
     });
 
-    await adapter.sendResponse(job.data.sender, responseTexts[0], messageId);
+    await adapter.sendResponse(job.data.sender, result.text, messageId);
   },
   {
     connection: {

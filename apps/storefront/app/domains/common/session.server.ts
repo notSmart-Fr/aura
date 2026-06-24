@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createCookieSessionStorage } from "@remix-run/node";
 
 const sessionSecret = process.env.SESSION_SECRET || "AURA_LUXURY_SECRET_TOKEN";
@@ -31,4 +32,23 @@ export async function destroySession(request: Request): Promise<Headers> {
   const headers = new Headers();
   headers.append("Set-Cookie", await sessionStorage.destroySession(session));
   return headers;
+}
+
+export async function getOrCreateChatUserId(
+  request: Request,
+): Promise<{ userId: string; headers?: Headers }> {
+  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
+  const existingUserId = session.get("chatUserId");
+
+  if (typeof existingUserId === "string" && existingUserId.length > 0) {
+    return { userId: existingUserId };
+  }
+
+  const chatUserId = randomUUID();
+  session.set("chatUserId", chatUserId);
+
+  const headers = new Headers();
+  headers.append("Set-Cookie", await sessionStorage.commitSession(session));
+
+  return { userId: chatUserId, headers };
 }

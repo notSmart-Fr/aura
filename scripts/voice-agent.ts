@@ -14,7 +14,7 @@ import {
 import * as cartesia from "@livekit/agents-plugin-cartesia";
 import * as deepgram from "@livekit/agents-plugin-deepgram";
 
-import { OrchestratorService } from "../apps/backend/src/domains/orchestrator/orchestrator.service";
+import { OrchestratorService } from "@dtc/ai-core/orchestrator";
 
 const orchestrator = new OrchestratorService();
 
@@ -50,13 +50,13 @@ export default defineAgent({
       console.log(`[Voice Boundary] Transcribed Input: ${transcribedText}`);
 
       try {
-        const responseTexts = await orchestrator.processIntent({
+        const result = await orchestrator.processIntent({
           channel: "livekit_voice",
           platformUserId,
           text: transcribedText,
         });
 
-        const aiReply = responseTexts[0];
+        const aiReply = result.text;
         console.log(`[Voice Boundary] Orchestrator Yielded text: ${aiReply}`);
 
         await session.say(aiReply);

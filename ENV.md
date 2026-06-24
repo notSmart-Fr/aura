@@ -1,6 +1,6 @@
 # Environment Variables
 
-Full documentation: [`.knowledge/architecture/environment-config.md`](.knowledge/architecture/environment-config.md)
+Full documentation: [`.knowledge/README.md`](.knowledge/README.md) (section 8: Environment Configuration)
 
 ## Quick setup
 
@@ -18,4 +18,4 @@ copy scripts\.env.template scripts\.env
 
 Root scripts load all three app env files via [`scripts/load-env.ts`](scripts/load-env.ts). Do not commit `.env` files.
 
-**Demo:** step-by-step run order (all processes + telemetry) → [`.knowledge/architecture/demo-runbook.md`](.knowledge/architecture/demo-runbook.md).
+**Demo:** step-by-step run order (all processes + telemetry) → [`.knowledge/runbook.md`](.knowledge/runbook.md).

@@ -1,0 +1,36 @@
+{
+  "name": "@dtc/ai-core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cache-engine": "./src/cache-engine.ts",
+    "./graph-retriever": "./src/graph-retriever.ts",
+    "./extractor": "./src/extractor.ts",
+    "./orchestrator": "./src/orchestrator.ts",
+    "./agents/shopAgent": "./src/agents/shopAgent.ts",
+    "./embedding.client": "./src/embedding.client.ts",
+    "./embedding-config": "./src/embedding-config.ts",
+    "./errors": "./src/errors.ts",
+    "./tools/searchCatalogTool": "./src/tools/searchCatalogTool.ts",
+    "./tools/exploreProductTool": "./src/tools/exploreProductTool.ts",
+    "./tools/modifyCartTool": "./src/tools/modifyCartTool.ts",
+    "./tools/showRecommendationsTool": "./src/tools/showRecommendationsTool.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/deepseek": "^2.0.39",
+    "@mastra/core": "latest",
+    "@opentelemetry/api": "^1.9.0",
+    "ioredis": "^5.11.1",
+    "kysely": "^0.26.3",
+    "pg": "^8.22.0",
+    "typeorm": "0.3.20",
+    "zod": "4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.4.5"
+  }
+}

@@ -173,6 +173,7 @@ export async function action({ request }: ActionFunctionArgs) {
               sender,
               text,
               attachments,
+              channel: "whatsapp",
             });
           }
         }

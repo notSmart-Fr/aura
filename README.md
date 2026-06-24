@@ -35,16 +35,11 @@ To prevent execution hangs and terminal blocking during agent-driven development
 
 ## 🧠 Core Architectural Concepts
 
-To keep the repository clean and optimized, low-level technical specifications and diagrams are moved into the `.knowledge/` directory:
+Architecture documentation is consolidated in `.knowledge/`:
 
-### 1. [AST Compiler Firewall Rules](file:///i:/aura/.knowledge/architecture/security-firewall.md)
-Detailed list of the 19 compile-time rules enforced statically on save (e.g. GraphQL client isolation, process.env restrictions, telemetry anonymization, and type safety constraints).
-
-### 2. [Background Worker Caching & Hydration](file:///i:/aura/.knowledge/architecture/caching-hydration.md)
-Documents the out-of-band queue processing pipeline, Kysely vector similarity search, and pg Pool volatile context hydration logic.
-
-### 3. [Webhook & Redis Pub/Sub Outbound Dispatch](file:///i:/aura/.knowledge/architecture/webhook-pubsub.md)
-Covers the Remix webhook handler, event parsing schema gates, and outbound message dispatch via Redis Pub/Sub channels.
+- **[Architecture Overview](.knowledge/README.md)** — system diagram, message flow, RAG pipeline, conventions, AST firewall rules
+- **[Demo Runbook](.knowledge/runbook.md)** — full local startup guide (Postgres, Redis, Jaeger, all channels)
+- **[Demo Guide](.knowledge/demo-guide.md)** — interview demo scenarios (Graph RAG, WhatsApp, Voice)
 
 ---
 
@@ -63,4 +58,4 @@ pnpm verify-agent
 pnpm dev
 ```
 
-**Full demo (all channels + telemetry):** see [Local Demo Runbook](.knowledge/architecture/demo-runbook.md) — Postgres, Redis, Ollama, Jaeger, worker, voice agent, and step-by-step test scenarios.
+**Full demo (all channels + telemetry):** see [Demo Runbook](.knowledge/runbook.md) — Postgres, Redis, Jaeger, worker, voice agent, and step-by-step test scenarios.

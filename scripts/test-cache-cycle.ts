@@ -27,7 +27,9 @@ try {
 async function runTest() {
   // Dynamically import the cache engine after env variables are loaded to avoid ESM static hoisting issues
   // @ts-ignore
-  const { getSemanticCache, setSemanticCache, getEmbedding } = await import('../apps/storefront/app/domains/ai-cache/cache-engine.server.ts');
+  const { getSemanticCache, setSemanticCache, getEmbedding } = await import(
+    "@dtc/ai-core/cache-engine"
+  );
 
   const queryText = 'How can I contact customer support?';
   console.log(`[1] Running first cache lookup for query: "${queryText}"`);
