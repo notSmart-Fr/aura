@@ -308,8 +308,15 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
           const modelProp = args[0].getProperty("model");
           if (modelProp && Node.isPropertyAssignment(modelProp)) {
             const val = modelProp.getInitializer()?.getText();
-            const allowedModels = ["'google/gemini-2.0-flash'", "'google/gemini-2.5-flash'", "'deepseek-chat'", "'deepseek/deepseek-chat'", "deepseek('deepseek-chat')"];
-            if (!allowedModels.includes(val || "")) {
+            const normalizedVal = (val || "").replace(/"/g, "'");
+            const allowedModels = [
+              "'google/gemini-2.0-flash'",
+              "'google/gemini-2.5-flash'",
+              "'deepseek-chat'",
+              "'deepseek/deepseek-chat'",
+              "deepseek('deepseek-chat')",
+            ];
+            if (!allowedModels.includes(normalizedVal)) {
               console.error(`❌ Rule 11 Model Constraint Gate Violation in [${relativePath}]:`);
               console.error(`   Unauthorized Model Choice [${val}]. Only gemini-2.0-flash or gemini-2.5-flash are allowed.`);
               violationCount++;
