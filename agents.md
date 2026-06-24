@@ -4,7 +4,7 @@ You are building a luxury minimalist apparel AI storefront: Remix + Mastra + **V
 
 ## Discovery
 
-Consult `.knowledge/README.md` for full architecture. Use skills (below) for domain-specific guidance. Prefer graph-first discovery via `codebase-memory-mcp` when mapping structure — it saves tokens over broad file reads.
+Consult `.knowledge/README.md` for full architecture. Use skills (below) for domain-specific guidance.
 
 ## Available Skills
 

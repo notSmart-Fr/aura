@@ -2,143 +2,36 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, Link } from "@remix-run/react";
 import React, { useState, useEffect, useRef } from "react";
-import { z } from "zod";
 import { Layout } from "../domains/common/layout.component";
 import { DatabaseDomainError, IntegrationError } from "../domains/common/errors";
-import { fetchActiveOrder } from "../domains/catalog/catalog.queries";
+import {
+  fetchActiveOrder,
+  fetchProducts,
+  searchProducts,
+  type CatalogProductPreview,
+} from "../domains/catalog/catalog.queries";
 import { getSessionToken, getOrCreateChatUserId } from "../domains/common/session.server";
 import { processWebIntent } from "../domains/orchestrator/web-orchestrator.server";
-
-
-interface ProductItem {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  thumbnail: string | null;
-  price: number;
-}
-
-interface SearchCatalogResponseItem {
-  productId: string;
-  productName: string;
-  slug: string;
-  description: string;
-  productAsset: {
-    preview: string;
-  } | null;
-}
-
-interface GetProductsResponseItem {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  featuredAsset: {
-    preview: string;
-  } | null;
-  variants: Array<{
-    id: string;
-    price: number;
-  }> | null;
-}
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const searchTerms = url.searchParams.get("q") || "";
 
-  let products: ProductItem[] = [];
+  let products: CatalogProductPreview[] = [];
   let isSearch = false;
-
-  const shopApiUrl = process.env.VENDURE_API_URL || "http://localhost:3000/shop-api";
 
   if (searchTerms) {
     isSearch = true;
-    const graphqlQuery = `
-      query SearchCatalog($input: SearchInput!) {
-        searchCatalog(input: $input) {
-          items {
-            productId
-            productName
-            slug
-            description
-            productAsset {
-              preview
-            }
-          }
-        }
-      }
-    `;
-
     try {
-      const response = await z.unknown().parseAsync(
-        fetch(shopApiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: graphqlQuery,
-            variables: { input: { term: searchTerms, take: 4 } }
-          })
-        })
-      ) as Response;
-
-      const resJson = await response.json();
-      if (!resJson.errors && resJson.data?.searchCatalog?.items) {
-        products = resJson.data.searchCatalog.items.map((item: SearchCatalogResponseItem) => ({
-          id: item.productId,
-          name: item.productName,
-          slug: item.slug,
-          description: item.description,
-          thumbnail: item.productAsset?.preview || null,
-          price: 95.0, // Default price fallback
-        }));
-      }
+      products = await searchProducts(searchTerms, 4);
     } catch (e: unknown) {
       console.error("Vector search failed, falling back to standard list:", e);
     }
   }
 
   if (products.length === 0) {
-    const graphqlQuery = `
-      query GetProducts {
-        products(options: { take: 4 }) {
-          items {
-            id
-            name
-            slug
-            description
-            featuredAsset {
-              preview
-            }
-            variants {
-              id
-              price
-            }
-          }
-        }
-      }
-    `;
-
     try {
-      const response = await z.unknown().parseAsync(
-        fetch(shopApiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: graphqlQuery })
-        })
-      ) as Response;
-
-      const resJson = await response.json();
-      if (resJson.data?.products?.items) {
-        products = resJson.data.products.items.map((item: GetProductsResponseItem) => ({
-          id: item.id,
-          name: item.name,
-          slug: item.slug,
-          description: item.description,
-          thumbnail: item.featuredAsset?.preview || null,
-          price: item.variants?.[0]?.price ? item.variants[0].price / 100 : 95.0,
-        }));
-      }
+      products = await fetchProducts(4);
     } catch (e: unknown) {
       console.error("Failed to load products:", e);
     }
@@ -193,16 +86,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 }
 
-async function authenticateUser(request: Request) {
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const session = cookieHeader.includes("session") ? "authenticated" : null;
-  const userRole = request.headers.get("x-user-role") || "customer";
-  return { session, userRole };
-}
-
 export async function action({ request }: ActionFunctionArgs) {
-  const { session, userRole } = await authenticateUser(request);
-
   const formData = await request.formData();
   const message = formData.get("message") as string;
   if (!message) {

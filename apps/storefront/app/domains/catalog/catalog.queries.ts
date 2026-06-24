@@ -76,6 +76,42 @@ const GET_ACTIVE_ORDER = `
   }
 `;
 
+const SEARCH_CATALOG = `
+  query SearchCatalog($input: SearchInput!) {
+    searchCatalog(input: $input) {
+      items {
+        productId
+        productName
+        slug
+        description
+        productAsset {
+          preview
+        }
+      }
+    }
+  }
+`;
+
+const GET_PRODUCTS = `
+  query GetProducts($take: Int!) {
+    products(options: { take: $take }) {
+      items {
+        id
+        name
+        slug
+        description
+        featuredAsset {
+          preview
+        }
+        variants {
+          id
+          price
+        }
+      }
+    }
+  }
+`;
+
 // Add Item to Order Mutation
 const ADD_ITEM_TO_ORDER = `
   mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
@@ -138,6 +174,24 @@ export interface ProductData {
   variants: ProductVariant[];
 }
 
+export interface CatalogProductPreview {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  thumbnail: string | null;
+  price: number;
+}
+
+export interface AddItemOrderResult {
+  id: string;
+  code: string;
+  state: string;
+  totalQuantity?: number;
+  errorCode?: string;
+  message?: string;
+}
+
 export interface ActiveOrder {
   id: string;
   code: string;
@@ -162,6 +216,56 @@ export interface ActiveOrder {
   }>;
 }
 
+export async function searchProducts(
+  term: string,
+  take: number,
+): Promise<CatalogProductPreview[]> {
+  const result = await runQuery<{
+    searchCatalog: {
+      items: Array<{
+        productId: string;
+        productName: string;
+        slug: string;
+        description: string;
+        productAsset?: { preview: string } | null;
+      }>;
+    };
+  }>(SEARCH_CATALOG, { input: { term, take } });
+
+  return result.data.searchCatalog.items.map((item) => ({
+    id: item.productId,
+    name: item.productName,
+    slug: item.slug,
+    description: item.description,
+    thumbnail: item.productAsset?.preview ?? null,
+    price: 0,
+  }));
+}
+
+export async function fetchProducts(take: number): Promise<CatalogProductPreview[]> {
+  const result = await runQuery<{
+    products: {
+      items: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        description: string;
+        featuredAsset?: { preview: string } | null;
+        variants?: Array<{ id: string; price: number }> | null;
+      }>;
+    };
+  }>(GET_PRODUCTS, { take });
+
+  return result.data.products.items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    slug: item.slug,
+    description: item.description,
+    thumbnail: item.featuredAsset?.preview ?? null,
+    price: item.variants?.[0]?.price ? item.variants[0].price / 100 : 0,
+  }));
+}
+
 export async function fetchProductBySlug(slug: string): Promise<ProductData | null> {
   const result = await runQuery<{ product: ProductData | null }>(GET_PRODUCT_BY_SLUG, { slug });
   return result.data.product;
@@ -179,12 +283,12 @@ export async function fetchActiveOrder(token: string | null): Promise<ActiveOrde
 export async function addItemToOrder(
   variantId: string,
   quantity: number,
-  token: string | null
-): Promise<{ order?: any; token?: string | null; error?: string }> {
-  const result = await runQuery<any>(
+  token: string | null,
+): Promise<{ order?: AddItemOrderResult; token?: string | null; error?: string }> {
+  const result = await runQuery<{ addItemToOrder: AddItemOrderResult }>(
     ADD_ITEM_TO_ORDER,
     { productVariantId: variantId, quantity },
-    token
+    token,
   );
 
   const res = result.data.addItemToOrder;

@@ -1,6 +1,8 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+import { runVendureQuery } from "../vendure-client.js";
+
 export const ModifyCartInputSchema = z.object({
   idempotencyKey: z.string().uuid().describe("Unique token to prevent duplicate cart mutations"),
   productVariantId: z
@@ -15,6 +17,17 @@ export const ModifyCartInputSchema = z.object({
     .default(1)
     .describe("The quantity of the item to add to the active cart order"),
 });
+
+interface AddItemToOrderData {
+  addItemToOrder: {
+    id?: string;
+    code?: string;
+    state?: string;
+    lines?: Array<{ id: string; quantity: number; productVariant: { name: string } }>;
+    errorCode?: string;
+    message?: string;
+  };
+}
 
 export const modifyCart = createTool({
   id: "modifyCart",
@@ -35,26 +48,17 @@ export const modifyCart = createTool({
       }
     `;
 
-    const response = (await z.unknown().parseAsync(
-      fetch(process.env.VENDURE_API_URL || "http://localhost:3000/shop-api", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": input.idempotencyKey,
-        },
-        body: JSON.stringify({
-          query: graphqlMutation,
-          variables: {
-            productVariantId: input.productVariantId,
-            quantity: input.quantity,
-          },
-        }),
-      }),
-    )) as Response;
+    const data = await runVendureQuery<AddItemToOrderData>(
+      graphqlMutation,
+      {
+        productVariantId: input.productVariantId,
+        quantity: input.quantity,
+      },
+      {
+        "Idempotency-Key": input.idempotencyKey,
+      },
+    );
 
-    const json = await response.json();
-    if (json.errors) throw new Error(json.errors[0].message);
-
-    return { success: true, cart: json.data.addItemToOrder };
+    return { success: true, cart: data.addItemToOrder };
   },
 });
