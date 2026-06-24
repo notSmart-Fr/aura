@@ -100,7 +100,7 @@ To enforce high-end luxury execution, we follow these non-negotiable guidelines:
 * **Structure:** A split 2-column container utilizing a `1px` gutter spacing (`bg-primary gap-gutter`).
   * **Col 1 (Large Image):** Full `aspect-[3/4]` image container displaying structural details, caption metadata label (`label-md`), title, and a linked text element.
   * **Col 2 (Split Content):** Top row contains a layout description (editorial text block) and bottom row contains an `aspect-video` detail image.
-* **Payload Block Schema:** Needs to represent these dynamic relations (Title, Subtitle, CTA details, Images, and product handles mapping to Medusa catalogs).
+* **Payload Block Schema:** Needs to represent these dynamic relations (Title, Subtitle, CTA details, Images, and product handles mapping to Vendure catalogs).
 
 ### D. Hairline Divided Product Rows (`FeaturedProducts` Block)
 
@@ -127,7 +127,7 @@ A new Payload block element `AsymmetricalGrid` must be structured inside the Pay
 * **`mediaLarge`**: Image URL or media relation (Aspect Ratio 3/4)
 * **`mediaSmall`**: Image URL or media relation (Aspect Ratio Video)
 * **`textBlock`**: Rich text or markdown description
-* **`targetHandle`**: Medusa product/collection handle for mapping links.
+* **`targetHandle`**: Vendure product/collection slug for mapping links.
 
 ### B. Catalog Alignment
 

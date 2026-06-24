@@ -5,34 +5,38 @@ description: "Aura system architecture, directory layout, domain boundaries, dat
 
 # Aura Architecture
 
+Commerce backend: **Vendure**. Storefront: **Remix**. AI pipeline: **`@dtc/ai-core`**.
+
 ## Data Flow
 ```
 WhatsApp/Web → webhook (Zod) → BullMQ → worker.ts → OrchestratorService.processIntent
 LiveKit Voice → STT → voice-agent.ts → OrchestratorService.processIntent
-Web → shopAgent → tools (GraphQL) → Vendure
+Web → web-orchestrator.server.ts → OrchestratorService.processIntent
+OrchestratorService → shopAgent → tools (GraphQL) → Vendure
 ```
 
-`OrchestratorService.processIntent` is the single source of truth.
-Both WhatsApp and LiveKit share it. Never duplicate its logic in transport runners.
+`OrchestratorService.processIntent` in `@dtc/ai-core` is the single source of truth.
+Never duplicate its logic in transport runners.
 
 ## Directory Map
 ```
-apps/backend/src/domains/orchestrator/orchestrator.service.ts  ← core pipeline
-apps/storefront/app/domains/    ← domain leaf nodes (catalog, cart, recommendations, ai-cache, common)
-apps/storefront/app/mastra/agents/shopAgent.ts  ← Mastra agent def
-apps/storefront/app/routes/     ← Remix routes (incl. api.webhook.whatsapp.ts)
-scripts/worker.ts               ← BullMQ WhatsApp worker (thin transport)
-scripts/voice-agent.ts          ← LiveKit voice agent (thin transport)
-scripts/ast-firewall.ts         ← 21 compile-time rules
-.knowledge/README.md            ← Full architecture overview
-.knowledge/runbook.md           ← Demo startup guide
+packages/ai-core/src/orchestrator.ts     ← core pipeline (THE BRAIN)
+packages/ai-core/src/agents/shopAgent.ts ← Mastra agent
+packages/ai-core/src/tools/            ← searchCatalog, modifyCart, etc.
+apps/backend/src/                      ← Vendure server + plugins
+apps/storefront/app/domains/           ← thin re-export proxies to @dtc/ai-core
+apps/storefront/app/routes/            ← Remix routes (incl. api.webhook.whatsapp.ts)
+scripts/worker.ts                      ← BullMQ WhatsApp worker (thin transport)
+scripts/voice-agent.ts                 ← LiveKit voice agent (thin transport)
+scripts/ast-firewall.ts                ← 21 compile-time rules
+.knowledge/README.md                   ← Full architecture overview
 ```
 
 ## Transport vs Engine Split
 | Layer | Where | Owns |
 |-------|-------|------|
-| Transport | scripts/worker.ts, voice-agent.ts | Queue loop, rate limit, normalize, adapter.sendResponse |
-| Engine | orchestrator.service.ts | Redis sessions, vector hydration, shopAgent.generate |
+| Transport | scripts/worker.ts, voice-agent.ts, web-orchestrator | Channel I/O, rate limit, adapter dispatch |
+| Engine | `@dtc/ai-core/orchestrator` | Redis sessions, vector hydration, shopAgent.generate |
 
 ## Key Patterns
 - Zod at every input boundary (webhooks, Redis, API responses)
@@ -41,3 +45,4 @@ scripts/ast-firewall.ts         ← 21 compile-time rules
 - Structured errors: IntegrationError (API), DatabaseDomainError (DB)
 - Redis sessions: `session:{channel}:{platformUserId}`, 30min TTL
 - Never store catalog grounding context in Redis — only raw user/assistant text
+- Commerce data via Vendure GraphQL only — never direct DB imports from storefront

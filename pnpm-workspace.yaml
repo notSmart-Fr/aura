@@ -1,7 +1,6 @@
 packages:
   - "apps/**"
   - "packages/**"
-  - "!apps/backend/.medusa/**"
 
 # pnpm v10+ overrides placement engine
 overrides:

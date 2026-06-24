@@ -11,7 +11,7 @@ describe("expandProductGraph", () => {
     const seeds: ProductSeed[] = [
       {
         id: 1,
-        name: "Medusa T-Shirt",
+        name: "Classic Cotton T-Shirt",
         slug: "t-shirt",
         description: "Classic cotton tee",
       },
@@ -37,7 +37,7 @@ describe("expandProductGraph", () => {
           rows: [
             {
               id: 2,
-              name: "Medusa Sweatshirt",
+              name: "Classic Sweatshirt",
               slug: "sweatshirt",
               description: "Cozy sweatshirt",
             },
@@ -51,7 +51,7 @@ describe("expandProductGraph", () => {
     expect(graphs).toHaveLength(1);
     expect(graphs[0].variants).toHaveLength(1);
     expect(graphs[0].pairedProducts[0]?.slug).toBe("sweatshirt");
-    expect(formatGraphContext(graphs)).toContain("Related products: Medusa Sweatshirt");
+    expect(formatGraphContext(graphs)).toContain("Related products: Classic Sweatshirt");
   });
 
   it("returns an empty array when no seeds are provided", async () => {

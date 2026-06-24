@@ -3,10 +3,11 @@
   "version": "1.0.3",
   "type": "module",
   "private": true,
-  "author": "Kasper Fabricius Kristensen <kasper@medusajs.com> & Victor Gerbrands <victor@medusajs.com> (https://www.medusajs.com)",
-  "description": "Next.js Starter to be used with Medusa V2",
+  "description": "Remix storefront for Aura, powered by Vendure GraphQL and Mastra agents.",
   "keywords": [
-    "medusa-storefront"
+    "vendure-storefront",
+    "remix",
+    "mastra"
   ],
   "scripts": {
     "dev": "vite",

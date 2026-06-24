@@ -1,6 +1,6 @@
 // @ts-nocheck
 // @ts-ignore
-import { something } from "../db/medusa"; // Rule 1
+import { something } from "../db/vendure"; // Rule 1
 // @ts-ignore
 import { z } from "zod";
 

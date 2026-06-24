@@ -31,7 +31,7 @@ interface EvalResult {
 const EVAL_CASES: EvalCase[] = [
   { query: "classic cotton t-shirt", expectedSlugs: ["t-shirt"] },
   { query: "black tee shirt", expectedSlugs: ["t-shirt"] },
-  { query: "white t shirt medusa", expectedSlugs: ["t-shirt"] },
+  { query: "white cotton t-shirt", expectedSlugs: ["t-shirt"] },
   { query: "comfortable sweatshirt", expectedSlugs: ["sweatshirt"] },
   { query: "gray pullover hoodie style sweatshirt", expectedSlugs: ["sweatshirt"] },
   { query: "warm sweatshirt for layering", expectedSlugs: ["sweatshirt"] },
@@ -44,7 +44,7 @@ const EVAL_CASES: EvalCase[] = [
   { query: "matching top and bottom set", expectedSlugs: ["sweatshirt", "sweatpants"] },
   { query: "workout outfit essentials", expectedSlugs: ["shorts", "sweatpants", "t-shirt"] },
   { query: "everyday cotton essentials", expectedSlugs: ["t-shirt", "sweatshirt"] },
-  { query: "medusa apparel basics", expectedSlugs: ["t-shirt", "sweatshirt", "shorts", "sweatpants"] },
+  { query: "everyday apparel basics", expectedSlugs: ["t-shirt", "sweatshirt", "shorts", "sweatpants"] },
   { query: "cozy weekend outfit", expectedSlugs: ["sweatshirt", "sweatpants"] },
   { query: "lightweight summer top", expectedSlugs: ["t-shirt", "shorts"] },
 ];

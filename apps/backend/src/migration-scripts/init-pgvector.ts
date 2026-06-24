@@ -7,6 +7,6 @@
  */
 export default async function initPgvector(): Promise<void> {
   console.log(
-    "[init-pgvector] Medusa migration removed. Use scripts/enable-vector.ts or docker/init-db.sql.",
+    "[init-pgvector] Legacy migration hook removed. Use scripts/enable-vector.ts or docker/init-db.sql.",
   );
 }

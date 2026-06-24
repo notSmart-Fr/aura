@@ -1,6 +1,6 @@
 # Aura Project Instructions
 
-You are building a luxury minimalist apparel AI storefront: Remix + Mastra + Vendure + WhatsApp + LiveKit Voice.
+You are building a luxury minimalist apparel AI storefront: Remix + Mastra + **Vendure** + WhatsApp + LiveKit Voice.
 
 ## Discovery
 

@@ -4,6 +4,8 @@ An AI-powered luxury minimalist apparel storefront. Customers interact through
 the **Remix web storefront**, **WhatsApp**, or **LiveKit voice**. All three
 channels converge on a single AI orchestration pipeline in `@dtc/ai-core`.
 
+**Commerce backend:** [Vendure](https://www.vendure.io/) (GraphQL + TypeORM + Postgres/pgvector).
+
 ---
 
 ## 1. System Diagram

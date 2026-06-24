@@ -94,9 +94,9 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
     const imports = sourceFile.getImportDeclarations();
     for (const imp of imports) {
       const moduleSpecifier = imp.getModuleSpecifierValue();
-      if (/\/db\/medusa/.test(moduleSpecifier)) {
+      if (/\/db\/vendure/.test(moduleSpecifier)) {
         console.error(`❌ Rule 1 Isolation Gate Violation in [${relativePath}]:`);
-        console.error(`   Direct Medusa database imports are forbidden. Access database via graphql-client.`);
+        console.error(`   Direct Vendure database imports are forbidden. Access commerce data via graphql-client.`);
         violationCount++;
       }
     }
