@@ -14,6 +14,7 @@ import {
 import * as cartesia from "@livekit/agents-plugin-cartesia";
 
 import { OrchestratorService } from "@dtc/ai-core/orchestrator";
+import { logger } from "@dtc/ai-core/logger";
 
 const orchestrator = new OrchestratorService();
 
@@ -28,7 +29,7 @@ function sanitizeForTTS(text: string): string {
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
-    console.log(`[Voice Portal] Connecting to stateful WebRTC Room: ${ctx.room.name}`);
+    logger.info({ room: ctx.room.name }, "Connecting to WebRTC Room");
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
@@ -47,7 +48,7 @@ export default defineAgent({
 
     await session.start({ agent, room: ctx.room });
 
-    console.log("[Voice Portal] Real-time audio pipeline online. Listening...");
+    logger.info("Real-time audio pipeline online. Listening...");
 
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, async (event) => {
       if (!event.isFinal) return;
@@ -55,7 +56,8 @@ export default defineAgent({
       const transcribedText = event.transcript;
       if (!transcribedText.trim()) return;
 
-      console.log(`[Voice Boundary] Transcribed Input: ${transcribedText}`);
+      const sanitized = sanitizeForTTS(transcribedText);
+      logger.info({ transcript: sanitized }, "Transcribed Input");
 
       try {
         const result = await orchestrator.processIntent({
@@ -65,12 +67,12 @@ export default defineAgent({
         });
 
         const aiReply = sanitizeForTTS(result.text);
-        console.log(`[Voice Boundary] Orchestrator Yielded text: ${aiReply}`);
+        logger.info({ text: aiReply }, "Orchestrator Yielded text");
 
         await session.say(aiReply);
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error(`[Voice Pipeline Error]: ${msg}`);
+        logger.error({ err: msg }, "Voice Pipeline Error");
         await session.say("I encountered an error accessing our catalog.");
       }
     });
@@ -78,15 +80,15 @@ export default defineAgent({
 });
 
 async function shutdown(signal: string) {
-  console.log(`Received ${signal}. Shutting down voice agent...`);
+  logger.info({ signal }, "Shutdown initiated");
   try {
     await orchestrator.close();
     await sdk.shutdown();
-    console.log("Voice agent closed successfully.");
+    logger.info("Voice agent closed successfully");
     process.exit(0);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error("Error during voice agent shutdown:", msg);
+    logger.error({ err: msg }, "Error during voice agent shutdown");
     process.exit(1);
   }
 }

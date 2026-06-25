@@ -12,8 +12,8 @@ import { resolve } from "node:path";
 import { loadMonorepoEnv } from "./load-env.ts";
 loadMonorepoEnv();
 
-import { DataSource } from "typeorm";
 import { Kysely, PostgresDialect, sql } from "kysely";
+import { getDbPool } from "@dtc/ai-core/db-pool";
 
 interface EvalCase {
   query: string;
@@ -66,23 +66,7 @@ function computeMrr(expected: string[], retrieved: string[]): number {
 }
 
 async function main() {
-  const dataSource = new DataSource({
-    type: "postgres",
-    host: process.env.DB_HOST || "localhost",
-    port: parseInt(process.env.DB_PORT || "5432", 10),
-    username: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "postgres",
-    database: process.env.DB_NAME || "vendure",
-    ssl:
-      process.env.DB_HOST && process.env.DB_HOST !== "localhost"
-        ? { rejectUnauthorized: false }
-        : false,
-    synchronize: false,
-    logging: false,
-  });
-
-  await dataSource.initialize();
-  const rawPool = (dataSource.driver as unknown as { master: unknown }).master;
+  const rawPool = getDbPool();
 
   const db = new Kysely<{
     product: {
@@ -98,7 +82,6 @@ async function main() {
       description: string;
     };
   }>({
-    // @ts-expect-error -- valid pg Pool at runtime
     dialect: new PostgresDialect({ pool: rawPool }),
   });
 
@@ -164,8 +147,6 @@ async function main() {
   console.log(`Mean Recall@3: ${(meanRecallAt3 * 100).toFixed(1)}%`);
   console.log(`Mean MRR: ${meanMrr.toFixed(3)}`);
   console.log(`Report: ${reportPath}`);
-
-  await dataSource.destroy();
 }
 
 main().catch((error: unknown) => {

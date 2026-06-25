@@ -41,12 +41,16 @@
     "@livekit/agents-plugin-cartesia": "^1.4.8",
     "@livekit/agents-plugin-deepgram": "^1.4.8",
     "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.219.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.55.0",
+    "@opentelemetry/resources": "^2.8.0",
+    "@opentelemetry/sdk-metrics": "^2.8.0",
     "@opentelemetry/sdk-node": "^0.55.0",
     "bullmq": "^4.17.0",
     "ioredis": "^5.11.1",
     "kysely": "^0.26.3",
     "pg": "^8.22.0",
+    "pino": "^10.3.1",
     "typeorm": "0.3.20",
     "zod": "4.2.0"
   }

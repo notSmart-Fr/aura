@@ -1,7 +1,6 @@
 import { trace, type Span } from "@opentelemetry/api";
 import { z } from "zod";
 import Redis from "ioredis";
-import { DataSource } from "typeorm";
 import { Kysely, PostgresDialect, sql } from "kysely";
 import { RequestContext } from "@mastra/core/request-context";
 
@@ -9,6 +8,13 @@ import { getSemanticCache, setSemanticCache, getEmbedding } from "./cache-engine
 import { expandProductGraph, formatGraphContext } from "./graph-retriever.js";
 import { extractPayloadData } from "./extractor.js";
 import { shopAgent } from "./agents/shopAgent.js";
+import { getDbPool } from "./db-pool.js";
+import { logger } from "./logger.js";
+import {
+  messagesProcessed,
+  cacheHits,
+  pipelineDuration,
+} from "./metrics.js";
 
 const tracer = trace.getTracer("orchestrator-service");
 
@@ -62,10 +68,6 @@ interface MatchedVariant {
   enabled: boolean;
 }
 
-interface RawPool {
-  query(sql: string, params: unknown[]): Promise<{ rows: MatchedVariant[] }>;
-}
-
 export interface ProcessIntentInput {
   text: string;
   channel: string;
@@ -95,7 +97,6 @@ function isSemanticCacheEnabled(): boolean {
 export class OrchestratorService {
   private readonly redis: Redis;
   private db: Kysely<VendureDatabase> | null = null;
-  private dataSource: DataSource | null = null;
 
   constructor() {
     this.redis = new Redis({
@@ -137,39 +138,14 @@ export class OrchestratorService {
     );
   }
 
-  private async bootstrapDataSource(): Promise<DataSource> {
-    const dataSource = new DataSource({
-      type: "postgres",
-      host: process.env.DB_HOST || "localhost",
-      port: parseInt(process.env.DB_PORT || "5432"),
-      username: process.env.DB_USER || "postgres",
-      password: process.env.DB_PASSWORD || "postgres",
-      database: process.env.DB_NAME || "vendure",
-      ssl:
-        process.env.DB_HOST && process.env.DB_HOST !== "localhost"
-          ? { rejectUnauthorized: false }
-          : false,
-      synchronize: false,
-      logging: false,
-    });
-    await dataSource.initialize();
-    return dataSource;
-  }
-
-  private async getDbConnection(): Promise<{
-    db: Kysely<VendureDatabase>;
-    dataSource: DataSource;
-  }> {
+  private async getDbConnection(): Promise<Kysely<VendureDatabase>> {
     if (!this.db) {
-      this.dataSource = await this.bootstrapDataSource();
-      const rawPool = (this.dataSource.driver as unknown as { master: unknown })
-        .master;
+      const pool = getDbPool();
       this.db = new Kysely<VendureDatabase>({
-        // @ts-expect-error -- rawPool extracted from TypeORM internals, valid pg Pool at runtime
-        dialect: new PostgresDialect({ pool: rawPool }),
+        dialect: new PostgresDialect({ pool }),
       });
     }
-    return { db: this.db, dataSource: this.dataSource as DataSource };
+    return this.db;
   }
 
   async processIntent(input: ProcessIntentInput): Promise<ProcessIntentResult> {
@@ -191,19 +167,20 @@ export class OrchestratorService {
 
             const parsed = CachedAgentResponseSchema.safeParse(cached);
             if (!parsed.success) {
+              cacheHits.add(1, { layer: "semantic", hit: "false" });
               span.setAttribute("cache.hit", false);
               span.setAttribute("cache.invalid", true);
               return null;
             }
 
+            cacheHits.add(1, { layer: "semantic", hit: "true" });
             span.setAttribute("cache.hit", true);
             return parsed.data;
           } catch (cacheErr: unknown) {
             const msg =
               cacheErr instanceof Error ? cacheErr.message : String(cacheErr);
-            console.warn(
-              `[OrchestratorService] Semantic cache lookup failed (non-fatal): ${msg}`,
-            );
+            logger.warn({ err: msg }, "Semantic cache lookup failed (non-fatal)");
+            cacheHits.add(1, { layer: "semantic", hit: "false" });
             span.setAttribute("cache.error", msg);
             return null;
           } finally {
@@ -213,6 +190,7 @@ export class OrchestratorService {
       );
 
       if (cacheResult) {
+        messagesProcessed.add(1, { channel, status: "cached" });
         await this.appendTurns(channel, platformUserId, [
           { role: "user", content: text },
           { role: "model", content: cacheResult.text },
@@ -232,20 +210,17 @@ export class OrchestratorService {
     await tracer.startActiveSpan("context-hydration", async (span: Span) => {
       span.setAttribute("system.operation", "context-hydration");
       span.setAttribute("payload.length", text.length);
+      const hydrationStart = Date.now();
 
       try {
-        const { db: database, dataSource } = await this.getDbConnection();
+        const database = await this.getDbConnection();
 
-        console.log(
-          `[OrchestratorService] Generating embedding coordinates for query...`,
-        );
+        logger.debug("Generating embedding coordinates for query");
         const embedding = await getEmbedding(text);
         queryEmbedding = embedding;
         const vectorLiteral = `[${embedding.join(",")}]`;
 
-        console.log(
-          `[OrchestratorService] Executing Kysely vector similarity search...`,
-        );
+        logger.debug("Executing Kysely vector similarity search");
         const matchedProducts = (await database
           .selectFrom("product as p")
           .innerJoin("product_translation as pt", "pt.baseId", "p.id")
@@ -260,12 +235,9 @@ export class OrchestratorService {
 
         if (matchedProducts.length > 0) {
           const productIds = matchedProducts.map((p: MatchedProduct) => p.id);
-          const rawPool = (dataSource.driver as unknown as { master: RawPool })
-            .master;
+          const rawPool = getDbPool();
 
-          console.log(
-            `[OrchestratorService] Querying pg Pool for live variant context...`,
-          );
+          logger.debug("Querying pg Pool for live variant context");
           const variantResult = await rawPool.query(
             `SELECT id, "productId", price, sku, enabled FROM product_variant WHERE "productId" = ANY($1) AND "deletedAt" IS NULL`,
             [productIds],
@@ -293,13 +265,6 @@ export class OrchestratorService {
             async (graphSpan: Span) => {
               graphSpan.setAttribute("seed_count", matchedProducts.length);
               try {
-                await tracer.startActiveSpan(
-                  "graph-hop-1",
-                  async (hopSpan: Span) => {
-                    hopSpan.end();
-                  },
-                );
-
                 const graphs = await expandProductGraph(
                   rawPool,
                   matchedProducts,
@@ -323,18 +288,16 @@ export class OrchestratorService {
                 graphSpan.setAttribute("context_length", graphContext.length);
 
                 if (graphContext) {
-                  console.log(
-                    `[OrchestratorService] Graph expansion enriched context with ${graphs.reduce((c, g) => c + g.pairedProducts.length, 0)} relationships.`,
-                  );
+                  const pairedCount = graphs.reduce((c, g) => c + g.pairedProducts.length, 0);
+                  logger.info({ pairedCount }, "Graph expansion enriched context");
+                  pipelineDuration.record(Date.now() - hydrationStart, { stage: "graph-expand" });
                 }
               } catch (graphErr: unknown) {
                 const msg =
                   graphErr instanceof Error
                     ? graphErr.message
                     : String(graphErr);
-                console.warn(
-                  `[OrchestratorService] Graph expansion failed (non-fatal): ${msg}`,
-                );
+                logger.warn({ err: msg }, "Graph expansion failed (non-fatal)");
                 graphSpan.setAttribute("graph_error", msg);
               } finally {
                 graphSpan.end();
@@ -347,12 +310,11 @@ export class OrchestratorService {
             .join("\n");
 
           hydratedText = `${text}\n\n[Live Storefront Catalog Context (Grounding Only - do not output raw tables/lists):\n${fullContext}]`;
-          console.log(
-            `[OrchestratorService] Layered context hydration completed (vector + graph).`,
-          );
+          logger.info("Layered context hydration completed (vector + graph)");
+          pipelineDuration.record(Date.now() - hydrationStart, { stage: "context-hydration" });
         }
       } catch (err: unknown) {
-        console.error(`[OrchestratorService] Context hydration failed:`, err);
+        logger.error({ err }, "Context hydration failed");
         throw err;
       } finally {
         span.end();
@@ -371,14 +333,12 @@ export class OrchestratorService {
         });
 
         if (classification) {
-          hydratedText = `${hydratedText}\n\n[Inbound Classification (Grounding Only):\n${classification}]`;
+          hydratedText = `${hydratedText}\n\n[Inbound Classification (Grounding Only):\n${JSON.stringify(classification)}]`;
         }
       } catch (extractErr: unknown) {
         const msg =
           extractErr instanceof Error ? extractErr.message : String(extractErr);
-        console.warn(
-          `[OrchestratorService] Payload extraction failed (non-fatal): ${msg}`,
-        );
+        logger.warn({ err: msg }, "Payload extraction failed (non-fatal)");
       }
     }
 
@@ -387,11 +347,18 @@ export class OrchestratorService {
         role:
           turn.role === "model" ? ("assistant" as const) : ("user" as const),
         content: turn.content,
+        id: crypto.randomUUID(),
+        createdAt: new Date(),
       })),
-      { role: "user" as const, content: hydratedText },
+      {
+        role: "user" as const,
+        content: hydratedText,
+        id: crypto.randomUUID(),
+        createdAt: new Date(),
+      },
     ];
 
-    console.log(`[OrchestratorService] Triggering shopAgent...`);
+    logger.info("Triggering shopAgent");
     const requestContext = new RequestContext();
     requestContext.set("vendureToken", input.vendureToken ?? null);
     const result = await shopAgent.generate(agentMessages, { requestContext });
@@ -404,31 +371,34 @@ export class OrchestratorService {
     const toolResults = result.toolResults ?? [];
     const isFallback = responseText === FALLBACK_RESPONSE;
 
+    messagesProcessed.add(1, { channel, status: isFallback ? "ai_fallback" : "ai_ok" });
+
     if (
       isSemanticCacheEnabled() &&
-      !isFallback &&
-      queryEmbedding &&
-      queryEmbedding.length > 0
+      !isFallback
     ) {
-      await tracer.startActiveSpan("semantic-cache-write", async (span: Span) => {
-        span.setAttribute("system.operation", "semantic-cache-write");
-        try {
-          await setSemanticCache(text, queryEmbedding, {
+      const queryEmb = queryEmbedding as number[] | null;
+      if (queryEmb !== null && queryEmb.length > 0) {
+        const cacheWriteStart = Date.now();
+        await tracer.startActiveSpan("semantic-cache-write", async (span: Span) => {
+          span.setAttribute("system.operation", "semantic-cache-write");
+          try {
+            await setSemanticCache(text, queryEmb, {
             text: responseText,
             toolResults,
           });
           span.setAttribute("cache.stored", true);
+          pipelineDuration.record(Date.now() - cacheWriteStart, { stage: "cache-write" });
         } catch (cacheErr: unknown) {
           const msg =
             cacheErr instanceof Error ? cacheErr.message : String(cacheErr);
-          console.warn(
-            `[OrchestratorService] Semantic cache write failed (non-fatal): ${msg}`,
-          );
+          logger.warn({ err: msg }, "Semantic cache write failed (non-fatal)");
           span.setAttribute("cache.error", msg);
         } finally {
           span.end();
         }
       });
+    }
     }
 
     await this.appendTurns(channel, platformUserId, [
@@ -445,9 +415,9 @@ export class OrchestratorService {
 
   async close(): Promise<void> {
     await this.redis.quit();
-    if (this.dataSource) {
-      await this.dataSource.destroy();
-      console.log("[OrchestratorService] TypeORM DataSource closed.");
+    if (this.db) {
+      await getDbPool().end();
+      logger.info("DB pool closed");
     }
   }
 }

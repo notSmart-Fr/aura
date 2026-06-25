@@ -31,25 +31,22 @@ vi.mock("ioredis", () => ({
   })),
 }));
 
-vi.mock("typeorm", () => ({
-  DataSource: vi.fn().mockImplementation(() => ({
-    initialize: vi.fn().mockResolvedValue(undefined),
-    destroy: vi.fn().mockResolvedValue(undefined),
-    driver: {
-      master: {
-        query: vi.fn().mockResolvedValue({
-          rows: [
-            {
-              id: 10,
-              productId: 1,
-              sku: "COAT-M",
-              price: 89000,
-              enabled: true,
-            },
-          ],
-        }),
-      },
+const mockPoolQuery = vi.fn().mockResolvedValue({
+  rows: [
+    {
+      id: 10,
+      productId: 1,
+      sku: "COAT-M",
+      price: 89000,
+      enabled: true,
     },
+  ],
+});
+
+vi.mock("../db-pool.js", () => ({
+  getDbPool: vi.fn().mockImplementation(() => ({
+    query: (...args: unknown[]) => mockPoolQuery(...args),
+    end: vi.fn().mockResolvedValue(undefined),
   })),
 }));
 

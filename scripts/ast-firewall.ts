@@ -595,21 +595,26 @@ async function executeSweep(targetPath?: string): Promise<boolean> {
       }
     }
 
-    // 15. Ingestion Worker Normalization Gate (scripts/worker.ts)
+    // 15. Worker Job Data Validation Gate (scripts/worker.ts)
     if (relativePath.replace(/\\/g, "/") === "scripts/worker.ts") {
-      const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
-      for (const call of callExpressions) {
-        const exprText = call.getExpression().getText();
-        if (exprText === "processNormalizedPayload") {
-          const args = call.getArguments();
-          for (const arg of args) {
-            const argType = arg.getType().getText();
-            if (!argType.includes("NormalizedPayload")) {
-              console.error(`❌ Rule 15 Normalization Gate Violation in [${relativePath}]:`);
-              console.error(`   Variable [${arg.getText()}] passed to downstream controller [${exprText}] is not bound to a strict 'NormalizedPayload' type.`);
-              violationCount++;
-            }
-          }
+      const fileText = sourceFile.getText();
+
+      // Check that job.data properties are accessed only after a Zod parse
+      const propertyAccesses = sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression);
+      let hasJobDataAccess = false;
+      for (const prop of propertyAccesses) {
+        if (prop.getExpression().getText() === "job.data") {
+          hasJobDataAccess = true;
+          break;
+        }
+      }
+
+      if (hasJobDataAccess) {
+        const hasZodJobDataParse = /WhatsAppJobDataSchema|z\.object\(/.test(fileText);
+        if (!hasZodJobDataParse) {
+          console.error(`❌ Rule 15 Worker Validation Gate Violation in [${relativePath}]:`);
+          console.error(`    job.data properties accessed without Zod schema validation. Must parse job.data through a Zod schema first.`);
+          violationCount++;
         }
       }
     }

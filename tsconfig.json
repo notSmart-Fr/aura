@@ -10,5 +10,5 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
   },
-  "include": ["scripts/**/*"],
+  "include": ["scripts/**/*", "packages/ai-core/src/**/*"],
 }

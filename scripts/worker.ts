@@ -8,8 +8,21 @@ import { trace, type Span } from "@opentelemetry/api";
 import { z } from "zod";
 
 import { OrchestratorService } from "@dtc/ai-core/orchestrator";
+import { logger } from "@dtc/ai-core/logger";
 
 const tracer = trace.getTracer("whatsapp-worker");
+
+const WhatsAppJobAttachmentSchema = z.object({
+  type: z.string(),
+  url: z.string(),
+});
+
+const WhatsAppJobDataSchema = z.object({
+  text: z.string().optional().default(""),
+  sender: z.string(),
+  channel: z.string().optional().default("whatsapp"),
+  attachments: z.array(WhatsAppJobAttachmentSchema).optional().default([]),
+});
 
 const WhatsAppDispatchResponseSchema = z.object({
   messaging_product: z.literal("whatsapp").optional(),
@@ -29,6 +42,10 @@ export interface NormalizedPayload {
   };
   sessionHistory: { role: "user" | "model"; content: string }[];
 }
+
+export type ProcessMessageResult =
+  | { status: "rate_limited"; sender: string }
+  | { status: "ok"; channel: string; text: string; messageId: string };
 
 interface PlatformAdapter {
   sendResponse(recipientId: string, text: string, messageId: string): Promise<void>;
@@ -70,25 +87,37 @@ class WhatsAppAdapter implements PlatformAdapter {
     const rawJson = await response.json();
     const parsedResponse = WhatsAppDispatchResponseSchema.parse(rawJson);
 
-    console.log(
-      `[Queue Worker] Dispatched outbound message to Meta. Message ID: ${parsedResponse.messages?.[0]?.id || "unknown"}`
+    logger.info(
+      { messageId: parsedResponse.messages?.[0]?.id || "unknown" },
+      "Dispatched outbound message to Meta",
     );
   }
 }
 
-const platformRegistry = new Map<string, PlatformAdapter>([
+export const platformRegistry = new Map<string, PlatformAdapter>([
   ["whatsapp", new WhatsAppAdapter()],
 ]);
 
-const orchestratorService = new OrchestratorService();
+export const orchestratorService = new OrchestratorService();
 
-const worker = new Worker(
-  "whatsapp-ingestion",
-  async (job: Job) => {
-    console.log(`[Queue Worker] Processing message from: ${job.data.sender}`);
+/**
+ * Core message handler — exported for unit testing without spinning up BullMQ.
+ * Called by the BullMQ Worker callback and by integration tests.
+ */
+export async function processWhatsAppMessage(
+  job: { id?: string; data: unknown },
+  redisClient: { incr(key: string): Promise<number>; expire(key: string, seconds: number): Promise<number> },
+): Promise<ProcessMessageResult> {
+  const data = WhatsAppJobDataSchema.parse(job.data);
+  const messageId: string = job.id || `unknown-${Date.now()}`;
 
-    const redisClient = await worker.client;
-    const clientKey = `rate:${job.data.sender}`;
+  return tracer.startActiveSpan("process-message", async (parentSpan: Span) => {
+    parentSpan.setAttribute("messaging.job_id", messageId);
+    parentSpan.setAttribute("messaging.channel", data.channel);
+
+    logger.info({ sender: data.sender }, "Processing message");
+
+    const clientKey = `rate:${data.sender}`;
 
     let isBlocked = false;
     await tracer.startActiveSpan("rate-limiter", async (span: Span) => {
@@ -108,22 +137,21 @@ const worker = new Worker(
     });
 
     if (isBlocked) {
-      console.warn(`⚠️ [Rate Limiter] Blocked spam payload from: ${job.data.sender}`);
-      return;
+      logger.warn({ sender: data.sender }, "Rate limit exceeded");
+      parentSpan.end();
+      return { status: "rate_limited" as const, sender: data.sender };
     }
 
-    let normalizedText: string = job.data.text || "";
+    let normalizedText: string = data.text;
 
-    if (job.data.attachments && job.data.attachments.length > 0) {
-      const attachmentBlocks = job.data.attachments
-        .map((att: { type: string; url: string }) => `\n\n### Attached Media [Type: ${att.type}]\n- File: ${att.url}`)
+    if (data.attachments && data.attachments.length > 0) {
+      const attachmentBlocks = data.attachments
+        .map((att) => `\n\n### Attached Media [Type: ${att.type}]\n- File: ${att.url}`)
         .join("");
       normalizedText += attachmentBlocks;
     }
 
-    const channel: string = typeof job.data.channel === "string" ? job.data.channel : "whatsapp";
-    const platformUserId: string = job.data.sender;
-    const messageId: string = job.id || `unknown-${Date.now()}`;
+    const channel: string = data.channel;
 
     const adapter = platformRegistry.get(channel);
     if (!adapter) {
@@ -133,10 +161,32 @@ const worker = new Worker(
     const result = await orchestratorService.processIntent({
       text: normalizedText,
       channel,
-      platformUserId,
+      platformUserId: data.sender,
     });
 
-    await adapter.sendResponse(job.data.sender, result.text, messageId);
+    await adapter.sendResponse(data.sender, result.text, messageId);
+
+    parentSpan.end();
+    return { status: "ok" as const, channel, text: result.text, messageId };
+  });
+}
+
+const worker = new Worker(
+  "whatsapp-ingestion",
+  async (job: Job) => {
+    await processWhatsAppMessage(
+      { id: job.id, data: job.data },
+      {
+        incr: async (key: string) => {
+          const redisClient = await worker.client;
+          return redisClient.incr(key);
+        },
+        expire: async (key: string, seconds: number) => {
+          const redisClient = await worker.client;
+          return redisClient.expire(key, seconds);
+        },
+      },
+    );
   },
   {
     connection: {
@@ -153,19 +203,19 @@ const worker = new Worker(
 );
 
 worker.on("failed", (job: Job | undefined, err: Error) => {
-  console.error(`❌ Job ${job?.id} failed:`, err);
+  logger.error({ jobId: job?.id, err }, "Job failed");
 });
 
-async function shutdown(signal: string) {
-  console.log(`Received ${signal}. Shutting down worker...`);
+export async function shutdown(signal: string) {
+  logger.info({ signal }, "Shutdown initiated");
   try {
     await worker.close();
     await orchestratorService.close();
     await sdk.shutdown();
-    console.log("Worker closed successfully.");
+    logger.info("Worker closed successfully");
     process.exit(0);
   } catch (error: unknown) {
-    console.error("Error during worker shutdown:", error);
+    logger.error({ err: error }, "Error during worker shutdown");
     process.exit(1);
   }
 }
